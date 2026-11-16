@@ -12,6 +12,8 @@ import dev.caecorthus.sparkwitch.item.rope.RopeItem;
 import dev.caecorthus.sparkwitch.item.rope.RopeRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoLightstickItem;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerTaskSlipItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyRules;
 import dev.caecorthus.sparkwitch.roles.civilian.accountant.AccountantPassbookItem;
@@ -159,6 +161,7 @@ public final class SparkWitchItems {
     public static final Identifier HANNA_HANDKERCHIEF_ID = HannaRules.HANDKERCHIEF_ID;
     public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
     public static final Identifier KOKO_LIGHTSTICK_ID = KokoRules.LIGHTSTICK_ID;
+    public static final Identifier PLANNER_TASK_SLIP_ID = PlannerRules.TASK_SLIP_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -229,6 +232,7 @@ public final class SparkWitchItems {
     private static Item hannaHandkerchief;
     private static Item rope;
     private static Item kokoLightstick;
+    private static Item plannerTaskSlip;
 
     private static boolean registered;
 
@@ -625,6 +629,14 @@ public final class SparkWitchItems {
                 KOKO_LIGHTSTICK_ID,
                 new KokoLightstickItem(KokoLightstickItem.createSettings())
         );
+        // 规划大师's task slip (PR #219), appended last, after 泽渡可可's lightstick, so earlier registration order stays
+        // unchanged. Any holder may use it; maxCount(1). / 规划大师的任务单（PR #219），追加在最后（泽渡可可的应援棒之后），
+        // 以保持既有注册顺序不变。谁拿到都能用；maxCount(1)。
+        plannerTaskSlip = Registry.register(
+                Registries.ITEM,
+                PLANNER_TASK_SLIP_ID,
+                new PlannerTaskSlipItem(PlannerTaskSlipItem.createSettings())
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -684,6 +696,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return kokoLightstick;
+    }
+
+    public static Item plannerTaskSlip() {
+        if (plannerTaskSlip == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return plannerTaskSlip;
     }
 
     public static Item firePoker() {

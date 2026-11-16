@@ -20,6 +20,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.junker.JunkerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.knight.KnightRules;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.medium.MediumRules;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertRules;
 import dev.caecorthus.sparkwitch.roles.civilian.discoverer.DiscovererRules;
@@ -140,6 +141,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier SHERRY_ID = SherryRules.ROLE_ID;
     public static final Identifier NIKAIDO_HIRO_ID = HiroRules.ROLE_ID;
     public static final Identifier KOKO_ID = KokoRules.ROLE_ID;
+    public static final Identifier PLANNER_MASTER_ID = PlannerRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -199,6 +201,7 @@ public final class SparkWitchRoleRegistry {
     private static Role sherry;
     private static Role nikaidoHiro;
     private static Role koko;
+    private static Role plannerMaster;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -569,6 +572,11 @@ public final class SparkWitchRoleRegistry {
     public static Role koko() {
         ensureRegistered();
         return koko;
+    }
+
+    public static Role plannerMaster() {
+        ensureRegistered();
+        return plannerMaster;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -1209,6 +1217,24 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .build());
+        // 规划大师 Master Planner (PR #219, rebuilt in review 2026-11-16): registered after 泽渡可可 and right before
+        // the Insider, which stays last (InsiderRegistrationContractTest), so only the Insider's own index shifts. An
+        // ordinary task civilian (REAL mood, passenger stamina, no round clock, no appearance condition) drawn by
+        // Wathe's civilian pass; never a police variant, never a Witch-skill role (kept out of
+        // isRegisteredSparkWitchRole) and never in the gui.sparkwitch.skills panel. Recommendations, task income, the
+        // task slip and the next-task passive live in roles/civilian/planner.
+        // 规划大师（PR #219，2026-11-16 审核时重建）：注册在泽渡可可之后、紧挨内应之前（内应仍为最后一个，
+        // InsiderRegistrationContractTest），因此只有内应自身的下标改变。普通任务平民（真实理智、乘客体力、不可见回合时间、
+        // 无出现条件），由 Wathe 平民分配抽取；不是警察变体，不是魔女技能职业（不加入 isRegisteredSparkWitchRole），也不
+        // 进入 gui.sparkwitch.skills 面板。推荐、任务收入、任务单与下一任务被动位于 roles/civilian/planner。
+        plannerMaster = SparkFactionApi.registerRole(FactionRoleDefinition.builder(PLANNER_MASTER_ID,
+                        FactionIds.CIVILIAN)
+                .color(PlannerRules.COLOR)
+                .moodType(Role.MoodType.REAL)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(false)
+                .nativeWatheFaction(Faction.CIVILIAN)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1283,6 +1309,9 @@ public final class SparkWitchRoleRegistry {
                 hanna,
                 // 橘雪莉 (PR #206) closes the newer civilian run, after Tono Hanna. / 橘雪莉（PR #206）排在远野汉娜之后。
                 sherry,
+                // 规划大师 (PR #219) follows 橘雪莉, before the Pig God; the promotion identities stay the tail.
+                // 规划大师（PR #219）排在橘雪莉之后、猪神之前；晋升身份仍位于末尾。
+                plannerMaster,
                 pigGod,
                 tarotReader,
                 fisher,

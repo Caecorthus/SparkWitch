@@ -13,6 +13,8 @@ import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 
+import java.util.Map;
+
 /**
  * Stable CCA contract {@code sparkwitch:planner_master_player} (NEVER_COPY), on every player.
  * <ul>
@@ -32,6 +34,13 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
  * 只同步给本人：其他客户端不会得知谁持有推荐、规划大师何时就绪。客户端按自身世界时钟读取就绪刻（沿用诺亚/汉娜的先例）。
  * NBT 使就绪刻与推荐在局中重新登录后保留；身份分配与 Wathe 的 {@code ResetPlayer} 清空全部状态。强制冷却存储
  * {@code sparkwitch:planner_recommend} 通过 {@link #setSkillReadyTick(long)} 写入就绪刻。
+ * <p>The server also keeps a transient reference to the exact Wathe task object it inserted (never saved or synced):
+ * a feature that rewrites the task map with a fresh task of the same type (a Bell Ringer Echo, a task slip, another
+ * mod) no longer matches it, so that task never counts as the recommendation. After a relog the reference is gone and
+ * the type alone decides; the client always decides by type.
+ * <p>服务端还保留一个指向其插入的那个 Wathe 任务对象的临时引用（从不保存、从不同步）：用同类型的新任务改写任务表的功能
+ * （敲钟人回响、任务单、其他模组）不再与之匹配，因此那个任务永远不算推荐。重新登录后该引用丢失，只按类型判断；客户端始终
+ * 按类型判断。
  */
 public final class PlannerComponent implements AutoSyncedComponent {
     public static final ComponentKey<PlannerComponent> KEY = ComponentRegistry.getOrCreate(
@@ -46,6 +55,8 @@ public final class PlannerComponent implements AutoSyncedComponent {
     private int nextTaskSeconds = -1;
     private @Nullable PlayerMoodComponent.Task recommendedType;
     private long recommendationEndTick;
+    /** Server only, never saved or synced: the exact task object inserted. / 仅服务端、不保存不同步：插入的那个任务对象。 */
+    private @Nullable PlayerMoodComponent.TrainTask recommendedTask;
 
     public PlannerComponent(PlayerEntity player) {
         this.player = player;
@@ -98,11 +109,35 @@ public final class PlannerComponent implements AutoSyncedComponent {
         return type != null && type == recommendedType;
     }
 
+    /**
+     * Whether {@code task} is the recommendation: its type is marked and, while the server still holds the inserted
+     * object, it is that very object. 该任务是否就是推荐：类型已被标记，且在服务端仍持有插入对象时必须是同一个对象。
+     */
+    public boolean isRecommendedTask(@Nullable PlayerMoodComponent.TrainTask task) {
+        return task != null && task.getType() == recommendedType && recommendedType != null
+                && (recommendedTask == null || recommendedTask == task);
+    }
+
+    /** Whether {@code tasks} holds the recommendation ({@link #isRecommendedTask}). / 任务表中是否持有推荐。 */
+    public boolean holdsRecommendation(Map<PlayerMoodComponent.Task, PlayerMoodComponent.TrainTask> tasks) {
+        return recommendedType != null && isRecommendedTask(tasks.get(recommendedType));
+    }
+
     /** Server only: marks {@code type} as a recommendation until {@code endTick}. / 仅服务端：标记推荐直到 {@code endTick}。 */
     public void setRecommendation(PlayerMoodComponent.Task type, long endTick) {
         recommendedType = type;
+        recommendedTask = null;
         recommendationEndTick = Math.max(0L, endTick);
         sync();
+    }
+
+    /**
+     * Server only: marks the task object just inserted as the recommendation until {@code endTick}.
+     * 仅服务端：把刚插入的任务对象标记为推荐，直到 {@code endTick}。
+     */
+    public void setRecommendation(PlayerMoodComponent.TrainTask task, long endTick) {
+        setRecommendation(task.getType(), endTick);
+        recommendedTask = task;
     }
 
     /** Server only: drops the recommendation marker; returns whether one was set. / 仅服务端：清除推荐标记。 */
@@ -111,6 +146,7 @@ public final class PlannerComponent implements AutoSyncedComponent {
             return false;
         }
         recommendedType = null;
+        recommendedTask = null;
         recommendationEndTick = 0L;
         sync();
         return true;
@@ -124,6 +160,7 @@ public final class PlannerComponent implements AutoSyncedComponent {
         skillReadyTick = 0L;
         nextTaskSeconds = -1;
         recommendedType = null;
+        recommendedTask = null;
         recommendationEndTick = 0L;
         sync();
     }
@@ -153,6 +190,7 @@ public final class PlannerComponent implements AutoSyncedComponent {
         skillReadyTick = Math.max(0L, buf.readVarLong());
         nextTaskSeconds = Math.max(-1, buf.readVarInt() - 1);
         recommendedType = taskOrNull(buf.readVarInt());
+        recommendedTask = null;
         recommendationEndTick = Math.max(0L, buf.readVarLong());
     }
 
@@ -163,6 +201,8 @@ public final class PlannerComponent implements AutoSyncedComponent {
                 ? taskOrNull(tag.getInt(RECOMMENDED_TYPE))
                 : null;
         recommendationEndTick = recommendedType == null ? 0L : Math.max(0L, tag.getLong(RECOMMENDATION_END_TICK));
+        // A relog rebuilds the task objects too: fall back to the type. / 重新登录也会重建任务对象：退回按类型判断。
+        recommendedTask = null;
     }
 
     @Override

@@ -98,6 +98,8 @@ public final class SparkWitchItemGroups {
                                     // 橘雪莉's detective badge and note (civilian) / 橘雪莉的侦探徽章与纸条（平民）
                                     SparkWitchItems.sherryBadge(),
                                     SparkWitchItems.sherryNote(),
+                                    // 规划大师's task slip (civilian) / 规划大师的任务单（平民）
+                                    SparkWitchItems.plannerTaskSlip(),
                                     // Savior (civilian police) / 救世主（平民警察）
                                     SparkWitchItems.saviorPistol(),
                                     SparkWitchItems.saviorLightsaber(),

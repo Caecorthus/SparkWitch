@@ -37,6 +37,7 @@ import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent
 import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent;
+import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
@@ -307,6 +308,13 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, KokoComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(KokoComponent::new);
+        // 规划大师 (PR #219): the planner's recommendation ready tick and next-task seconds, and on any player the
+        // recommendation marker; synced to the owner only; appended last, after 泽渡可可's component.
+        // 规划大师（PR #219）：规划大师的推荐就绪刻与下一任务秒数，以及任何玩家身上的推荐标记；只同步给本人；追加在最后，
+        // 位于泽渡可可的组件之后。
+        registry.beginRegistration(PlayerEntity.class, PlannerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(PlannerComponent::new);
     }
 
     @Override
