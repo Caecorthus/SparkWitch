@@ -173,14 +173,15 @@ public final class BlackRavenCrowSessions {
      * Kill link for crow-hits: a lethal hit on the crow ends the session (no Homing Feather) and runs the standard
      * {@code GameFunctions.killPlayer(owner, true, killer, deathReason)}, so kill credit, Wathe's innocent-kill rules and
      * every protection (psycho armour, SparkTraits, Last Stand) apply as if the body had been hit; the corpse lies at
-     * the body. An orphan crow is simply removed. A killer SparkFactionAPI refuses on the owner for {@code deathReason}
-     * changes nothing (its {@code killPlayer} HEAD veto would cancel the kill after the session end). Returns true when
-     * the owner is dead afterwards.
+     * the body. An orphan crow is simply removed. A kill that cannot land ({@code BlackRavenCrowTargets.killCanLand}:
+     * SparkFactionAPI refuses the killer on the owner for {@code deathReason}, or the Specter's Otherworld rule voids
+     * it) changes nothing (the refusing {@code killPlayer} HEAD veto would cancel the kill after the session end).
+     * Returns true when the owner is dead afterwards.
      * 供 crow-hits 使用的击杀接口：对乌鸦的致命命中先结束会话（不使用归羽），再执行标准的
      * {@code GameFunctions.killPlayer(owner, true, killer, deathReason)}，因此击杀归属、Wathe 误杀规则与所有保护（疯魔护甲、
-     * SparkTraits、背水一战）都如同命中本体一样生效；尸体位于本体处。孤儿乌鸦直接移除。SparkFactionAPI 以 {@code deathReason}
-     * 禁止 {@code killer} 影响主人时什么都不改变（其 {@code killPlayer} HEAD 否决会在会话结束后才取消击杀）。之后主人已死亡时
-     * 返回 true。
+     * SparkTraits、背水一战）都如同命中本体一样生效；尸体位于本体处。孤儿乌鸦直接移除。无法生效的击杀
+     * （{@code BlackRavenCrowTargets.killCanLand}：SparkFactionAPI 以 {@code deathReason} 禁止 {@code killer} 影响主人，或被幽魂
+     * 里世界规则作废）什么都不改变（相应的 {@code killPlayer} HEAD 否决会在会话结束后才取消击杀）。之后主人已死亡时返回 true。
      */
     public static boolean killOwnerVia(@Nullable BlackRavenCrowEntity crow, @Nullable ServerPlayerEntity killer,
                                        Identifier deathReason) {
@@ -192,7 +193,7 @@ public final class BlackRavenCrowSessions {
             crow.discard();
             return false;
         }
-        if (!BlackRavenCrowTargets.mayAffect(killer, owner, deathReason)) {
+        if (!BlackRavenCrowTargets.killCanLand(killer, owner, deathReason)) {
             return false;
         }
         end(owner, BlackRavenCrowEndReason.CROW_KILLED);

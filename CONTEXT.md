@@ -91,8 +91,8 @@ It also adds 夏目安安 Natsume Anan (`sparkwitch:natsume_anan`, contributed i
 hypnotises a player within 3 blocks: blinded, locked out of items and role skills, and losing sanity.
 It also adds the Specter (`sparkwitch:specter`, 幽魂, contributed in PR #207), a killer whose ability key (G) marks a
 player within 3 blocks and then makes them shriek (fear), and whose Role Skill 2 key opens the world-wide 30 s
-Otherworld (里世界), in which its knife only lands on low-sanity or cowardly non-killers and low-sanity players get a
-Peachwood Sword that can hurt it.
+Otherworld (里世界), in which its kills (any weapon) only land on low-sanity or cowardly non-killers and low-sanity
+players get a Peachwood Sword that can hurt it.
 It also adds 二阶堂希罗 Nikaido Hiro (`sparkwitch:nikaido_hiro`, 2026-11-11), a
 killer whose ability key (G) casts 死亡回归 (Return by Death, 100 mana, first use 90 s in, 45 s cooldown from its
 end): it records her position for 15 s; everyone she kills in that window only feigns death for 15 s each and then
@@ -847,12 +847,23 @@ Current build baseline:
     froze the server-side hotbar and corrupted `psychosActive`). Non-killers get Slowness I for the window
     (`SpecterOtherworldService`, every 10 ticks).
   - Otherworld knife: the knife's natural cooldown is cleared with SparkFactionAPI
-    `ForcedCooldowns.clearItemKeepingForced`, so forced penalties still lock it. The targeting rule
-    (`GameFunctionsSpecterOtherworldTargetMixin`, `killPlayer` HEAD priority 1040, pinned in
-    `watheCommonMixinContracts`) voids only `wathe:knife` kills by a Specter during the window on effective killers and
-    on players who are neither cowardly nor low-sanity; guns, poison and other deaths are untouched.
-    `SpecterOtherworldKnifeMixin` (Wathe knife receiver HEAD, priority 900) only drops a stab that rule would void, with
-    no side effects; every other stab runs Wathe's receiver and all its guards (SparkTraits, SparkStrength, Knight duel).
+    `ForcedCooldowns.clearItemKeepingForced`, so forced penalties still lock it.
+  - Otherworld targeting rule (`SpecterOtherworldService.blocksKill`, PR #233: every weapon, not only the knife):
+    `GameFunctionsSpecterOtherworldTargetMixin` (`killPlayer` HEAD priority 1040, pinned in
+    `watheCommonMixinContracts`) voids any non-forced kill credited to a Specter during the window on effective
+    killers and on players who are neither cowardly nor low-sanity, before any protection of the victim is spent.
+    It is judged when the kill resolves (a grenade or poison follows the window state at that moment). Not judged:
+    forced kills, self-kills, `fell_out_of_train` / `escaped` / `drowned` / `mental_breakdown`, NoellesRoles
+    `bodyguard_sacrifice` (voiding it would make the protected valid target unkillable), the Tofana retaliation, a
+    shot the Dominator forces out of a Specter (`DominatorForcedShotScope.isFiring`) and a Charon pardon replay
+    (`FerrymanPardonService.isReplayingHeldKill`). A new death reason that credits a player who did not attack the
+    victim must join `NON_ATTACK_REASONS`.
+    `SpecterOtherworldKnifeMixin` and `SpecterOtherworldGunMixin` (Wathe knife / gun receiver HEAD, priority 900) only
+    drop a stab or shot that rule would void, with no side effects (no record, cooldown, Veteran use, spent derringer
+    or shot-an-innocent revolver loss); every other stab or shot runs Wathe's receiver and all its guards (SparkTraits,
+    SparkStrength, Knight duel). Thrown and delayed weapons (grenade, M67, poison, other mods' projectiles) have no
+    such seam: they are spent as usual and only the kill is voided. Raven Form: a kill the rule voids never ends the
+    crow session (`BlackRavenCrowTargets.killCanLand`), and the two receiver seams resolve a crow to its owner.
   - Ghost Trigger (`GhostTriggerItem` / `GhostTriggerEntity`, Specter shop 50 coins, POISON frame, registered in the
     DEFAULT `BuildShopEntries` phase so Charisma applies): one per support block, arms after 0.5 s; victims follow
     `HunterTrapEntity.canCatch` (owner and killer teammates included, Wraiths only for their bound killer) plus a role.

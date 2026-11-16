@@ -11,6 +11,7 @@ import dev.caecorthus.sparkwitch.roles.killer.blackraven.crow.BlackRavenCrowSess
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackManager;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPuppetHits;
+import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldService;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -173,6 +174,22 @@ public final class BlackRavenCrowTargets {
         return SparkFactionApi.canAffectPlayer(player, owner, action, GameWorldComponent.KEY.get(owner.getWorld()));
     }
 
+    /**
+     * Whether a non-forced kill of the crow's {@code owner} by {@code killer} for {@code deathReason} can land at all:
+     * {@link #mayAffect}, and not voided by the Specter's Otherworld targeting rule
+     * ({@code SpecterOtherworldService#blocksKill}, whose {@code killPlayer} HEAD veto would likewise cancel the kill
+     * only after our session end). Every place that ends a session ahead of an owner kill asks this, so a kill that
+     * cannot land leaves the crow and its session alone.
+     * {@code killer} 以 {@code deathReason} 对乌鸦主人 {@code owner} 的非强制击杀是否可能生效：需通过 {@link #mayAffect}，且不会被
+     * 幽魂里世界索敌规则作废（{@code SpecterOtherworldService#blocksKill}，其 {@code killPlayer} HEAD 否决同样只会在会话结束后
+     * 才取消击杀）。所有在击杀主人之前结束会话的位置都先询问此处，因此无法生效的击杀不触碰乌鸦及其会话。
+     */
+    public static boolean killCanLand(@Nullable ServerPlayerEntity killer, @Nullable ServerPlayerEntity owner,
+                                      @Nullable Identifier deathReason) {
+        return mayAffect(killer, owner, deathReason)
+                && (owner == null || !SpecterOtherworldService.blocksKill(owner, killer, deathReason, false));
+    }
+
     /** {@link #hittable} plus {@link #mayAffect} for {@code action}. / {@link #hittable} 加上对 action 的许可判定。 */
     public static @Nullable Target hittable(@Nullable Entity attacker, @Nullable Entity entity,
                                             @Nullable Identifier action) {
@@ -221,12 +238,12 @@ public final class BlackRavenCrowTargets {
     /**
      * Kill link, from {@code BlackRavenCrowKillLinkMixin} at the HEAD of every {@code killPlayer}: a victim substituted
      * this tick loses its session first ({@code CROW_KILLED}, no Homing Feather), as {@code killOwnerVia} does, unless
-     * SparkFactionAPI refuses {@code killer} on it for {@code deathReason} ({@link #mayAffect}): that kill is cancelled
-     * by SparkFactionAPI's own HEAD veto, so the crow and its session stay. Also records the victim of an open blast
-     * scope ({@link #recordBlastAttempts}).
+     * the kill cannot land ({@link #killCanLand}: SparkFactionAPI refuses {@code killer} on it for {@code deathReason},
+     * or the Specter's Otherworld rule voids it): that kill is cancelled by the refusing HEAD veto, so the crow and its
+     * session stay. Also records the victim of an open blast scope ({@link #recordBlastAttempts}).
      * 击杀链接，由 {@code BlackRavenCrowKillLinkMixin} 在每次 {@code killPlayer} 的 HEAD 调用：本刻被替身的受害者先结束会话
-     * （{@code CROW_KILLED}，不使用归羽），与 {@code killOwnerVia} 一致；但 SparkFactionAPI 以 {@code deathReason} 拒绝
-     * {@code killer} 影响它时（{@link #mayAffect}），该击杀会被 SparkFactionAPI 自身的 HEAD 否决取消，乌鸦与会话保持不变。
+     * （{@code CROW_KILLED}，不使用归羽），与 {@code killOwnerVia} 一致；但该击杀无法生效时（{@link #killCanLand}：SparkFactionAPI 以
+     * {@code deathReason} 拒绝 {@code killer} 影响它，或被幽魂里世界规则作废），它会被相应的 HEAD 否决取消，乌鸦与会话保持不变。
      * 同时记录打开的爆炸作用域中的受害者（{@link #recordBlastAttempts}）。
      */
     public static void beforeKillPlayer(@Nullable ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer,
@@ -246,7 +263,7 @@ public final class BlackRavenCrowTargets {
         }
         SUBSTITUTIONS.remove(victim.getUuid());
         BlackRavenCrowEntity crow = BlackRavenCrowSessions.crowOf(victim);
-        if (crow != null && crow.getId() == substitution.crowEntityId() && mayAffect(killer, victim, deathReason)) {
+        if (crow != null && crow.getId() == substitution.crowEntityId() && killCanLand(killer, victim, deathReason)) {
             BlackRavenCrowSessions.end(victim, BlackRavenCrowEndReason.CROW_KILLED);
         }
     }
