@@ -15,10 +15,13 @@ import net.minecraft.server.network.ServerPlayerEntity;
 /**
  * The Savior already carries their pistol and may not pick up or otherwise obtain other guns: Wathe's gun tag plus
  * SparkWitch's own guns. The Savior's own pistol and lightsaber are never vetoed (taking them back from a chest or a
- * Knight duel hotbar move must work). The hidden revolver in the locked main rows stays put against a modified client.
- * Server-authoritative and creative-exempt, following the USEC gun rules.
+ * Knight duel hotbar move must work). The hidden revolver in the locked main rows stays put against a modified client;
+ * only the innocent-kill punishment moves it into the hand ({@code SaviorRules.swapInRevolver}, owner 2026-11-16), and
+ * a revolver outside rows 9–26 is no longer guarded. Server-authoritative and creative-exempt, following the USEC gun
+ * rules.
  * 救世主已有手枪，不可再捡或获得其他枪：Wathe 枪械标签加上 SparkWitch 自己的枪械。救世主自己的手枪与光剑永不拦截
- * （从箱子取回、骑士决斗移到快捷栏都必须可行）。锁定主背包行中的隐藏左轮防止改包客户端移出。服务端裁定，创造模式豁免，
+ * （从箱子取回、骑士决斗移到快捷栏都必须可行）。锁定主背包行中的隐藏左轮防止改包客户端移出；只有误杀惩罚会把它换到手上
+ * （{@code SaviorRules.swapInRevolver}，所有者 2026-11-16），离开 9–26 行的左轮不再受保护。服务端裁定，创造模式豁免，
  * 沿用 USEC 枪械规则。
  */
 public final class SaviorGunPickupRules {

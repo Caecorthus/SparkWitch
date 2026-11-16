@@ -15,6 +15,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.stream.IntStream;
+
 /**
  * Numbers shared by the Savior's pistol and lightsaber. The pistol copies Wathe's revolver (30-block client pick,
  * 65-block server tolerance, 10 s cooldown, one lethal shot). The lightsaber copies Wathe's bat attributes.
@@ -150,16 +152,18 @@ public final class SaviorRules {
     }
 
     /**
-     * Hands the gun straight to the shooter instead of dropping it into the world: the planted revolver at
-     * {@link #HIDDEN_REVOLVER_SLOT} sits in the main-row corner Wathe's limited screen locks, and a ground drop owned
-     * by a shooter who may not pick guns up can never be taken. It swaps places with the stack in the selected hotbar
-     * slot, which puts the revolver in the hand and the old hand stack into slot 9; when the bag holds no revolver at
-     * all a fresh one is issued into the selected slot and the old hand stack moves to the first free slot. Only the
-     * Savior has a planted revolver: for any other holder the confiscated Savior weapon is the whole loss.
-     * 直接把枪交回射手手上而不是丢到世界里：预置左轮放在 {@link #HIDDEN_REVOLVER_SLOT}，正处在 Wathe 限定界面锁住的主背包角落，
-     * 而一名被禁止拾枪的射手掉在地上的枪永远没人能捡。该方法让它与当前选中的快捷栏物品互换位置，左轮到手上、原手持物品回到
-     * 9 号槽；背包里完全没有左轮时新发一把放进选中槽，原手持物品移到第一个空槽。只有救世主身上有预置左轮：其他持有者只损失
-     * 被没收的救世主武器。
+     * Owner decision 2026-11-16 (PR #234): the punishment no longer drops a gun. The Savior's planted revolver (slot
+     * {@link #HIDDEN_REVOLVER_SLOT} first, then any other slot) moves into the selected hotbar slot, so the punished
+     * Savior goes on with a plain Wathe revolver. A stack still held in that slot moves to the first free slot the
+     * player can reach ({@link #displacedHandOrder}); only when none is free does it take the revolver's old slot, so
+     * nothing is deleted or dropped. No revolver is created: a Savior who carries none (it was already handed over and
+     * lost) gets nothing, which keeps one revolver per Savior. Only the Savior has a planted revolver: for any other
+     * holder the confiscated Savior weapon is the whole loss and their own guns stay (USEC any-holder precedent).
+     * 所有者 2026-11-16 决定（PR #234）：惩罚不再掉落枪支。救世主的预置左轮（先查 {@link #HIDDEN_REVOLVER_SLOT} 号槽，再查
+     * 其他槽）移到当前选中的快捷栏槽，被惩罚的救世主改用普通的 Wathe 左轮。该槽里原有的物品移到玩家够得着的第一个空槽
+     * （{@link #displacedHandOrder}）；没有空槽时才放进左轮原来的槽位，因此不会删除或掉落任何物品。不会新建左轮：身上没有
+     * 左轮的救世主（那把已经交出并丢失）什么也得不到，保持每名救世主只有一把左轮。只有救世主身上有预置左轮：其他持有者只
+     * 损失被没收的救世主武器，自己的枪保持不动（USEC 任何持有者先例）。
      */
     static void swapInRevolver(ServerPlayerEntity shooter) {
         if (!isSavior(GameWorldComponent.KEY.get(shooter.getWorld()).getRole(shooter))) {
@@ -171,27 +175,37 @@ public final class SaviorRules {
         if (hand.isOf(WatheItems.REVOLVER)) {
             return;
         }
-        int slot = HIDDEN_REVOLVER_SLOT != selected && inventory.getStack(HIDDEN_REVOLVER_SLOT).isOf(WatheItems.REVOLVER)
-                ? HIDDEN_REVOLVER_SLOT
-                : -1;
-        for (int index = 0; slot < 0 && index < inventory.size(); index++) {
-            if (index != selected && inventory.getStack(index).isOf(WatheItems.REVOLVER)) {
-                slot = index;
+        int from = inventory.getStack(HIDDEN_REVOLVER_SLOT).isOf(WatheItems.REVOLVER) ? HIDDEN_REVOLVER_SLOT : -1;
+        for (int index = 0; from < 0 && index < inventory.size(); index++) {
+            if (inventory.getStack(index).isOf(WatheItems.REVOLVER)) {
+                from = index;
             }
         }
-        if (slot >= 0) {
-            ItemStack revolver = inventory.getStack(slot).copy();
-            inventory.setStack(slot, hand);
-            inventory.setStack(selected, revolver);
-        } else {
-            int free = inventory.getEmptySlot();
-            if (free < 0) {
-                return;
-            }
-            inventory.setStack(free, hand);
-            inventory.setStack(selected, new ItemStack(WatheItems.REVOLVER));
+        if (from < 0) {
+            return;
         }
+        ItemStack revolver = inventory.getStack(from);
+        int free = hand.isEmpty() ? -1 : SaviorLoadoutService.firstEmpty(displacedHandOrder(selected),
+                index -> inventory.getStack(index).isEmpty());
+        inventory.setStack(from, ItemStack.EMPTY);
+        if (!hand.isEmpty()) {
+            inventory.setStack(free >= 0 ? free : from, hand);
+        }
+        inventory.setStack(selected, revolver);
         inventory.markDirty();
+    }
+
+    /**
+     * Pure: where the stack pushed out of the hand may go, in order: the other hotbar slots, then the second visible
+     * row 27–35 (SparkFactionAPI limited inventory). Never rows 9–26, which Wathe's LimitedInventoryScreen locks: a
+     * key or tool parked there could not be taken back.
+     * 纯函数：被挤出手的物品可去的槽位，按顺序：其余快捷栏槽，再到第二可见行 27–35（SparkFactionAPI 受限物品栏）。绝不放进
+     * Wathe LimitedInventoryScreen 锁住的 9–26 行：钥匙或工具放进去就再也拿不回来。
+     */
+    static int[] displacedHandOrder(int selected) {
+        return IntStream.concat(
+                IntStream.range(0, PlayerInventory.getHotbarSize()).filter(index -> index != selected),
+                IntStream.range(LOCKED_MAIN_LAST_SLOT + 1, PlayerInventory.MAIN_SIZE)).toArray();
     }
 
     /**
