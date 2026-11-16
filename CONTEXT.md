@@ -49,6 +49,11 @@ drain, and whose shop sells a parasol and a handkerchief that any holder can use
 stamina that earns coins and mana, deduces killers next to a corpse (推演, ability key G: a correct pick lights that
 killer up for her for 5 s every 20 s, any other pick costs sanity), carries her own 巨力魔法 (Role Skill 2) and hands
 out detective badges whose holder's killer lights up for 5 s every 40 s.
+规划大师 Master Planner (`sparkwitch:planner_master`, contributed in PR #219 and rebuilt in review) is an ordinary task
+civilian that earns 75 coins per task, spends 25 coins on the shared ability key (G) to add one native Wathe task to
+the player under the crosshair within 32 blocks and in sight (or to itself), which never drains sanity, pays its
+finisher 50 coins (25 outside the civilian faction) and 0.75 sanity and disappears after 60 s, sees the seconds until
+its own next task, and sells a task slip that rerolls a player's tasks for whoever holds it.
 It also adds the Fiend (`sparkwitch:fiend`), a neutral drawn only in rounds with 18+ players that only a
 train fall can kill, that feigns death for 5 s 60 s after the round start and after each revival (and for 20 s after
 any blocked kill) until it buys a timed Fiend Moment, and that a Vulture can kill by eating its fake corpse.
@@ -1314,9 +1319,9 @@ Current build baseline:
 - `roles/neutral/koko/`: 泽渡可可 Sawatari Koko (`sparkwitch:koko`, color `0xB5AFE2`), contributed in PR #223 and
   rebuilt in review on the Hanna model (owner spec and decisions 2026-11-13); every number lives in `KokoRules`.
   - Registration: a SparkFactionAPI neutral (Wathe-native NEUTRAL, FAKE mood so she has fake tasks, 10 s
-    `maxSprintTime`, no round clock, no appearance condition) registered after 二阶堂希罗 and right before the Insider
-    (which stays last), and guessed in the neutral block after the Lost Soul. Drawn by Wathe's neutral pass; she is
-    not settlement-excluded, so she counts as a living neutral for every other win. `SparkWitchRoles` exposes `KOKO_ID`
+    `maxSprintTime`, no round clock, no appearance condition) registered after 二阶堂希罗, before 规划大师 and the
+    Insider (which stays last), and guessed in the neutral block after the Lost Soul. Drawn by Wathe's neutral pass;
+    she is not settlement-excluded, so she counts as a living neutral for every other win. `SparkWitchRoles` exposes `KOKO_ID`
     and `koko()`. She is a Witch Trial girl (`OtherWitchRoles`), so the Grand Witch's held instinct shows her in the
     other-witch colour.
   - Mana without witch skills: a mana role in `WitchManaRules` (`isManaRole`) on the Murderous Witch's natural
@@ -3017,7 +3022,7 @@ Current build baseline:
   rebuilt in review on the Noa model (owner decisions 2026-11-11); every number lives in `HannaRules`.
   - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
     no appearance condition) registered after the Lost Soul and before the Insider (which stays last; only 橘雪莉,
-    PR #206, 二阶堂希罗 and 泽渡可可 sit between them), and guessed in the civilian block right after the Medium (橘雪莉 follows her). Drawn by Wathe's civilian pass, never a police variant or slot.
+    PR #206, 二阶堂希罗, 泽渡可可 and 规划大师 sit between them), and guessed in the civilian block right after the Medium (橘雪莉 follows her). Drawn by Wathe's civilian pass, never a police variant or slot.
     `SparkWitchRoles` exposes `HANNA_ID` and `hanna()`.
   - Mana without witch skills: she is a mana role in `WitchManaRules` (`isManaRole`), with `initialMana` 40 granted by
     `WitchManaService.assignForRole` right after `initializeMana()`, `taskReward` 20, no natural regeneration
@@ -3079,7 +3084,7 @@ Current build baseline:
     other role (the PR's Hanna and Emma links are gone); her Mighty Force follows the Apprentice misfire rule.
   - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 15 s `maxSprintTime`, no round clock,
     no appearance condition) registered after Tono Hanna, before 二阶堂希罗 and the Insider (which stays last), and
-    guessed in the civilian block right after Tono Hanna. Drawn by Wathe's civilian pass, never a police variant; no
+    guessed in the civilian block right after Tono Hanna (规划大师 follows her). Drawn by Wathe's civilian pass, never a police variant; no
     witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills` panel (AGENTS.md panel
     rule: being a mana role and owning a Mighty Force grants no panel access); in neither Black Raven disguise list.
     `SparkWitchRoles` exposes `SHERRY_ID` and `sherry()`. Companion: SparkTraits blocks her from the Impostor trait.
@@ -3155,6 +3160,75 @@ Current build baseline:
     instinct-hidden). No instinct key is needed; Fear/Obscure/swallow vetoes and any `skip()` still hide them.
   - Lang: `role`/`announcement` keys for `sherry` and `sparkwitch.sherry`, `item.sparkwitch.sherry_*`,
     `message.sparkwitch.sherry.*`, `hud.sparkwitch.sherry.*`, `screen.sparkwitch.sherry.*`, `tip.letter.sherry.*`
+    and the four replay keys.
+- `roles/civilian/planner/`: 规划大师 Master Planner (`sparkwitch:planner_master`, color `0xE8C46A`), contributed in
+  PR #219 as 13 unwired files and rebuilt in review (owner answers 2026-11-16: Q1 the 75 coins for every task the
+  planner completes, `PlannerRules.OWN_TASK_COINS_FOR_EVERY_TASK`; Q2 self-recommendation with nothing aimed at, with
+  the normal reward, `SELF_RECOMMEND_ALLOWED`); every number lives in `PlannerRules`.
+  - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
+    no appearance condition) registered after 泽渡可可 and right before the Insider (which stays last), and guessed in
+    the civilian block right after 橘雪莉. Drawn by Wathe's civilian pass with Wathe's 0 starting coins, never a
+    police variant or slot; no witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills`
+    panel; in neither Black Raven disguise list (Accountant/Hanna precedent: never claimable). `SparkWitchRoles`
+    exposes `PLANNER_MASTER_ID` and `plannerMaster()`.
+  - Hub: `PlannerFeatureService` in `SparkWitchEvents` after 橘雪莉's and before USEC (which stays last): registers the
+    C2S `sparkwitch:use_planner_recommend` (`net/UsePlannerRecommendC2SPayload(UUID target)`; the client's crosshair
+    pick, its own UUID with nothing aimed at; only a hint) with a server receiver, the replay formatters, economy,
+    the world tick, and `RoleAssigned` (silent drop of the player's recommendation, `clear()`, then the 45 s opening
+    cooldown for a drawn planner) / `ResetPlayer` (`clear()`).
+  - Recommend (`PlannerRecommendService.tryRecommend`, pure gate `PlannerRules.recommendVerdict` in the Hanna/Koko
+    order): real role, ACTIVE round, alive and not spectating, not controlled (swallowed, stunned, SparkTraits
+    role-skill blocked), ready, all silent; then Fear (Grand Witch "skill blocked" line); then, each with an action-bar
+    line, the target (self, or a player of the planner's world who is a living present participant, not swallowed, not
+    an active Wraith, within 32 blocks of the eyes measured to the box, and with eyes or centre visible from the eyes
+    through no block: `PlannerTargeting`), 25 coins, no recommendation on the target, and a free task type (absent from
+    the target's map and no Bell Ringer Echo holding it). A refusal never charges or starts the cooldown. `USE` puts a
+    NATIVE Wathe task of a uniformly random absent type into the target's `PlayerMoodComponent.tasks`
+    (`PlannerTasks`, Wathe's own durations, `timesGotten` untouched), marks it (marker before `mood.sync()`), charges
+    through `addToBalance(-25)` and sets the 70 s cooldown; private page-turn cues for both players. Feedback to
+    the caster never names the target (the client also sends the UUID of a player hidden in BEAR smoke).
+  - Lifecycle: the marked task is an ordinary task for Wathe and every `TaskComplete` listener (Wathe's +0.5
+    included). `PlannerEconomyService`'s single `TaskComplete` listener first pays the planner's own +75 (living
+    planner in an ACTIVE round, survival, not a restricted Wraith, confirmed non-Impostor via
+    `SparkTraitsTaskIncomeBridge`), then, for a live recommendation, pays its holder 50 coins (Wathe faction CIVILIAN)
+    or 25 (anyone else) through `addToBalance` and +0.75 through `setMood` (Wathe clamps; FAKE mood stays 1) and clears
+    the marker; it never touches the task map (Wathe is iterating it). `PlannerLifecycleService` (END_WORLD_TICK)
+    settles markers with `PlannerRules.markerAction`: task gone or replaced (completed, rerolled, reset, a Bell
+    Ringer Echo or another mod writing a fresh task of the same type) clears the marker;
+    expired after 60 s or holder no longer a living participant drops the marker and its task silently (no pay, no
+    `TaskComplete`; Bell Ringer Echo precedent). A self-recommendation pays both the +75 and the reward.
+  - Drain: `mixin/planner/PlayerMoodComponentPlannerDrainMixin` (common, `@ModifyExpressionValue` on the first
+    `Map.size()` of `serverTick`/`clientTick`, `require = 2, allow = 2`, `remap = false`; chained with Noa's lock and
+    the Abyss zone, never `@Redirect`; listed right after 橘雪莉's mood mixin) counts one task fewer while the marked
+    task is held, floored at 0, and does nothing for a Noa-locked player. Not covered: the Perfumer's own corpse drain
+    still scales with `tasks.size()`.
+  - Next task: for a living planner in an ACTIVE round the world tick reads Wathe's private `nextTaskTimer` through
+    the existing `mixin/PlayerMoodComponentAccessor` (read only) and publishes whole seconds rounded up
+    (`setNextTaskSeconds`, owner sync on change); -1 for everyone else.
+  - State: `PlannerComponent` (`sparkwitch:planner_master_player`, `NEVER_COPY`, owner-only sync, appended last in the
+    CCA list after 泽渡可可's): the planner's ready tick and next-task seconds (never saved), and on any player the
+    recommended type and its end tick (at most one per player). The server also keeps a transient reference to the
+    exact Wathe task object it inserted (never saved or synced; a relog falls back to the type), and every reader
+    (reward, lifecycle, drop, drain) goes through `isRecommendedTask` / `holdsRecommendation`, so a same-type
+    replacement is never the recommendation. The forced-cooldown store `sparkwitch:planner_recommend` (store 31) only
+    moves the ready tick later.
+  - Coins and shop: `CanSeeMoney` ALLOW for a living planner, DENY otherwise (Hanna precedent); one `TOOL` row, the
+    task slip for 50 (unlimited, Charisma discount).
+  - Task slip (`PlannerTaskSlipItem` / `PlannerTaskSlipService`, `sparkwitch:planner_task_slip`, 任务单, `maxCount(1)`,
+    registered last in `SparkWitchItems`, listed after 橘雪莉's items; own 16x16 texture): any holder in an ACTIVE round,
+    alive, present, not swallowed or stunned. Right-click rerolls the tasks of the targetable player under the
+    crosshair within 32 blocks (server ray stopped by the first block), or the user's own: the same count of distinct
+    random native types, marker cleared. No task (or a Bell Ringer Echo holding the map) refuses with a line and keeps
+    the slip; success consumes it and tells the target `message.sparkwitch.planner.task_slip` with the user's name (no
+    role claim; the user's own line never names the target). No item cooldown.
+  - Replay (`PlannerReplay`): skill event `sparkwitch:planner_recommend` and item use `sparkwitch:planner_task_slip`,
+    the other player as the event target; `replay.sparkwitch.planner_recommend[.self]` and
+    `replay.sparkwitch.planner_task_slip[.self]`.
+  - Deny lists: `use_planner_recommend` has its row in SparkFactionAPI's payload policy table with Tono Hanna's and
+    泽渡可可's cells.
+  - Lang: `role`/`announcement` keys for `planner_master` and `sparkwitch.planner_master`,
+    `tip.letter.planner_master.tooltip1`, the six client `hud.sparkwitch.planner.*` keys, `task.planner_recommend.*`
+    (the target's task row, no format arguments), `message.sparkwitch.planner.*`, the slip's item name and tooltips,
     and the four replay keys.
 - `roles/civilian/fisher/`: Angler (`sparkwitch:fisher`, 钓鱼佬) rules and catch table, economy,
   bait shop, round-start rod, server-authoritative drink-tray fishing, transferable fish effects,
@@ -4760,6 +4834,11 @@ deliberate and kept:
    cooldown and, while she is live, the rest of the stream; the nominal is `KokoRules.COOLDOWN_TICKS` (900). Every
    write only moves the ready tick later through the syncing `setReadyTick`, so it never shortens and never ends a
    running stream.
+31. `sparkwitch:planner_recommend` (`SparkWitchForcedCooldowns#plannerRecommend`, PR #219, appended after 泽渡可可's
+   streams): 规划大师's recommendation cooldown, for the raw role in an ACTIVE round. Remaining time counts to the
+   absolute ready tick in `PlannerComponent`, so it includes the 45 s opening cooldown; the nominal is
+   `PlannerRules.COOLDOWN_TICKS` (1400). Every write only moves the ready tick later through the syncing
+   `setSkillReadyTick`.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
