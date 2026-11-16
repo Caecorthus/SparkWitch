@@ -5,7 +5,6 @@ import dev.doctor4t.wathe.record.GameRecordManager;
 import dev.doctor4t.wathe.record.replay.ReplayGenerator;
 import dev.doctor4t.wathe.record.replay.ReplayRegistry;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -34,7 +33,6 @@ final class CriminalReasonerReplay {
             return null;
         }
         var cache = ReplayGenerator.getPlayerInfoCache(match);
-        Identifier ignored = CriminalReasonerRules.ROLE_ID;
         return Text.translatable(data.getBoolean("success")
                         ? "replay.skill.sparkwitch.criminal_reasoner.success"
                         : "replay.skill.sparkwitch.criminal_reasoner.fail",

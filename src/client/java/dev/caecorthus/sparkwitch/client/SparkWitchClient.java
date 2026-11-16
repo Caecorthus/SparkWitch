@@ -30,6 +30,7 @@ import dev.caecorthus.sparkwitch.client.noa.NoaClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.hanna.HannaClient;
 import dev.caecorthus.sparkwitch.client.koko.KokoClient;
+import dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
 import dev.caecorthus.sparkwitch.client.blind.kit.BlindKitClientWiring;
 import dev.caecorthus.sparkwitch.client.fiend.FiendDashClient;
@@ -103,6 +104,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.UseOrthopedistSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent;
@@ -155,11 +157,6 @@ public final class SparkWitchClient implements ClientModInitializer {
         // 本能、描边与盲人钩子读取的本地观察者事实，按世界渲染 pass 缓存。
         LocalViewerSnapshot.register();
         SecondaryAbilityController.registerKeyBinding();
-        // 犯罪推理学家：推理菜单、隐身充能与 HUD。
-        dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule.register();
-        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(
-                (context, tickCounter) ->
-                        dev.caecorthus.sparkwitch.client.hud.CriminalReasonerHudRenderer.render(context));
         BlackRavenClientModule.register();
         GrandWitchClientModule.register();
         ApprenticeClientModule.register();
@@ -218,6 +215,10 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Koko traffic and stream rows plus her live instinct outline (role-owned); going live rides the shared
         // ability key below. / 可可的流量行、直播行与直播期间的本能描边（职业自有）；开播走下方的共享技能键。
         KokoClient.init();
+        // 犯罪推理学家 (PR #228): reasoning menu, invisibility key, instinct hide and HUD rows (role-owned); the menu
+        // request rides the shared ability key below. / 犯罪推理学家（PR #228）：推理菜单、隐身键、本能屏蔽与 HUD 行（职业自有）；
+        // 菜单请求走下方的共享技能键。
+        CriminalReasonerClientModule.register();
         // BEAR smoke (spike): the S2C receivers that write SmokeClientState, and the disconnect cleanup.
         // BEAR 烟雾（原型）：写入 SmokeClientState 的 S2C 接收器与断线清理。
         dev.caecorthus.sparkwitch.client.bear.smoke.SmokeNetworkClient.register();
@@ -316,12 +317,10 @@ public final class SparkWitchClient implements ClientModInitializer {
                     }
                 } else if (JudgeRules.isJudge(role)) {
                     JudgeClientModule.requestSelection(client);
-                } else if (role != null
-                        && dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules.ROLE_ID
-                                .equals(role.identifier())) {
-                    // The reasoner's ability key opens its own reasoning menu. / 推理学家的技能键打开推理菜单。
-                    dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule
-                            .requestSelection(client);
+                } else if (CriminalReasonerRules.isReasoner(role)) {
+                    // Real role only; the module drops a dead, spectating or swallowed Reasoner's press. The key opens
+                    // his own reasoning menu. / 仅限真实职业；死亡、旁观或被吞下的推理学家的按键由模块丢弃。该键打开推理菜单。
+                    CriminalReasonerClientModule.requestSelection(client);
                 } else if (JunkerRules.isRagpicker(role)) {
                     // Real role only; a dead or swallowed Ragpicker's press is dropped here, not sent as a witch skill.
                     // 仅限真实职业；死亡或被吞下的拾荒者的按键在此被丢弃，不会作为魔女技能发送。
@@ -617,7 +616,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         DoubleBarrelMuzzleClient.reset();
         WitchMaidenClientModule.clear();
         TarotDivinationClientState.clear();
-        dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule.clear();
+        CriminalReasonerClientModule.clear();
         JudgeClientModule.clear();
         ProphetClientModule.clear();
         SeekerClientModule.reset();

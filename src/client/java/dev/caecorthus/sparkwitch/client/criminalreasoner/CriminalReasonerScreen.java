@@ -30,6 +30,24 @@ public final class CriminalReasonerScreen extends Screen {
     private static final int SUBTITLE_Y = 38;
     private static final int GRID_TOP = 58;
     private static final int FOOTER = 34;
+    /**
+     * Room above the footer for the suspect page's {@code current_pair} line (drawn at {@code height - 46}), so the
+     * grid never runs under it.
+     * 嫌疑人页 {@code current_pair} 行（绘制于 {@code height - 46}）在底栏上方占用的空间，网格不会伸到它下面。
+     */
+    private static final int SUMMARY_SPACE = 16;
+    /** A tile's drawn height: the avatar plus the name under it. / 一个格子的绘制高度：头像加下方名字。 */
+    private static final int TILE_HEIGHT = ICON + 12;
+    /** Label row plus the gap to the grid under it. / 小节标题行及其与下方网格的间距。 */
+    private static final int SECTION_LABEL_SPACE = 20;
+    private static final int SECTION_GAP = 6;
+    /**
+     * The server keeps a roster session for {@link CriminalReasonerRules#MENU_SESSION_TICKS} and silently drops a later
+     * confirm, so the menu closes one second before that; reopening fetches a fresh roster.
+     * 服务端只保留名单会话 {@link CriminalReasonerRules#MENU_SESSION_TICKS}，之后的确认会被静默丢弃，因此菜单提前一秒关闭；
+     * 重新打开会取得新名单。
+     */
+    private static final int CLOSE_AFTER_TICKS = CriminalReasonerRules.MENU_SESSION_TICKS - 20;
     private static final double SCROLL_STEP = 24.0;
     private static final int BUTTON_WIDTH = 80;
     private static final int BUTTON_HEIGHT = 20;
@@ -43,6 +61,7 @@ public final class CriminalReasonerScreen extends Screen {
     private int scroll;
     private int maxScroll;
     private int viewBottom;
+    private int openTicks;
 
     public CriminalReasonerScreen(OpenCriminalReasonerS2CPacket roster) {
         super(Text.translatable("screen.sparkwitch.criminal_reasoner.title"));
@@ -53,21 +72,22 @@ public final class CriminalReasonerScreen extends Screen {
     protected void init() {
         buttons.clear();
         sectionLabels.clear();
-        viewBottom = height - FOOTER;
-        int contentTop = GRID_TOP - scroll;
+        boolean selectingVictim = selectedVictim == null;
+        viewBottom = height - FOOTER - (selectingVictim ? 0 : SUMMARY_SPACE);
         int centerX = width / 2;
 
-        if (selectedVictim == null) {
-            initVictimGrid(centerX, contentTop);
+        // Footer buttons are added before the tiles, so they come first for clicks and focus.
+        // 底栏按钮先于格子添加，因此点击与焦点都优先落在按钮上。
+        if (selectingVictim) {
             addDrawableChild(ButtonWidget.builder(
                             Text.translatable("screen.sparkwitch.criminal_reasoner.cancel"),
                             b -> close())
                     .dimensions(centerX - BUTTON_WIDTH / 2, height - 28, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
+            initVictimGrid(centerX);
             return;
         }
 
-        initSuspectSections(centerX);
         ButtonWidget confirm = ButtonWidget.builder(
                         Text.translatable("screen.sparkwitch.criminal_reasoner.confirm"),
                         b -> confirm())
@@ -85,11 +105,15 @@ public final class CriminalReasonerScreen extends Screen {
                         })
                 .dimensions(centerX - 4 - BUTTON_WIDTH, height - 28, BUTTON_WIDTH, BUTTON_HEIGHT)
                 .build());
+        initSuspectSections(centerX);
     }
 
-    private void initVictimGrid(int centerX, int contentTop) {
+    private void initVictimGrid(int centerX) {
         List<UUID> victims = roster.victimUuids();
         List<String> names = roster.victimNames();
+        int rows = (victims.size() + COLUMNS - 1) / COLUMNS;
+        clampScroll(gridHeight(rows));
+        int contentTop = GRID_TOP - scroll;
         int columns = Math.min(COLUMNS, Math.max(1, victims.size()));
         int startX = centerX - columns * CELL_WIDTH / 2;
         for (int index = 0; index < victims.size(); index++) {
@@ -100,6 +124,8 @@ public final class CriminalReasonerScreen extends Screen {
                     uuid, names.get(index), uuid.equals(selectedVictim), () -> {
                         selectedVictim = uuid;
                         selectedSuspect = null;
+                        // A new page starts at its top, like Back. / 新页面从顶部开始，与“返回”一致。
+                        scroll = 0;
                         clearAndInit();
                     });
         }
@@ -108,6 +134,7 @@ public final class CriminalReasonerScreen extends Screen {
     private void initSuspectSections(int centerX) {
         ClientPlayerEntity player = client == null ? null : client.player;
         if (player == null) {
+            clampScroll(0);
             return;
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(player.getWorld());
@@ -127,17 +154,18 @@ public final class CriminalReasonerScreen extends Screen {
         }
         int aliveRows = Math.max(1, (alive.size() + COLUMNS - 1) / COLUMNS);
         int deadRows = Math.max(1, (dead.size() + COLUMNS - 1) / COLUMNS);
-        int contentHeight = aliveRows * CELL_HEIGHT + 26 + deadRows * CELL_HEIGHT + 26;
-        maxScroll = Math.max(0, contentHeight - (viewBottom - GRID_TOP));
-        scroll = Math.max(0, Math.min(scroll, maxScroll));
+        // Same offsets as the layout below: two labels, one gap, both grids.
+        // 与下方布局相同的偏移：两个标题、一个间距、两组网格。
+        clampScroll(SECTION_LABEL_SPACE + aliveRows * CELL_HEIGHT + SECTION_GAP
+                + SECTION_LABEL_SPACE + gridHeight(deadRows));
 
         int y = GRID_TOP - scroll;
         addSectionLabel(centerX, y, Text.translatable("screen.sparkwitch.criminal_reasoner.section_alive"));
-        y += 20;
+        y += SECTION_LABEL_SPACE;
         addGrid(alive, aliveNames, centerX, y);
-        y += aliveRows * CELL_HEIGHT + 6;
+        y += aliveRows * CELL_HEIGHT + SECTION_GAP;
         addSectionLabel(centerX, y, Text.translatable("screen.sparkwitch.criminal_reasoner.section_dead"));
-        y += 20;
+        y += SECTION_LABEL_SPACE;
         addGrid(dead, deadNames, centerX, y);
     }
 
@@ -156,10 +184,30 @@ public final class CriminalReasonerScreen extends Screen {
         }
     }
 
+    /** Height of a grid of {@code rows} rows, down to the last name. / {@code rows} 行网格的高度，到最后一行名字为止。 */
+    private static int gridHeight(int rows) {
+        return rows <= 0 ? 0 : (rows - 1) * CELL_HEIGHT + TILE_HEIGHT;
+    }
+
+    /** Sets {@link #maxScroll} for this page's content and clamps {@link #scroll}. / 按本页内容设置最大滚动并夹住滚动值。 */
+    private void clampScroll(int contentHeight) {
+        maxScroll = Math.max(0, contentHeight - (viewBottom - GRID_TOP));
+        scroll = Math.max(0, Math.min(scroll, maxScroll));
+    }
+
+    private boolean inView(int top, int extent) {
+        return top >= GRID_TOP && top + extent <= viewBottom;
+    }
+
     private void addTile(int x, int y, UUID uuid, String name, boolean selected, Runnable onPress) {
         CriminalReasonerPlayerButton button = new CriminalReasonerPlayerButton(
                 x, y, uuid, name, b -> onPress.run());
         button.setSelected(selected);
+        // A tile scrolled even partly out of the grid area is hidden, so it neither draws over the title or footer
+        // nor takes a click (a hidden widget ignores clicks and focus).
+        // 只要部分滚出网格区域的格子就隐藏，既不会画到标题或底栏上，也不会接收点击（隐藏的控件不响应点击和焦点）。
+        button.visible = inView(y, TILE_HEIGHT);
+        button.active = button.visible;
         buttons.add(button);
         addDrawableChild(button);
     }
@@ -177,15 +225,34 @@ public final class CriminalReasonerScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
-        // Dark backing plus the role accent down the left edge, as in the source menu.
-        // 深色底 + 左缘身份色强调条，与原版菜单一致。
+    public void tick() {
+        // Close in every state in which the server would refuse the confirm anyway (the reasoning gate, see
+        // CriminalReasonerClientModule.isActiveReasoner), and before the server's roster session runs out.
+        // 凡是服务端无论如何都会拒绝确认的状态都会关闭（推理门槛，见 CriminalReasonerClientModule.isActiveReasoner），
+        // 并在服务端名单会话过期之前关闭。
+        openTicks++;
+        if (client == null || openTicks >= CLOSE_AFTER_TICKS
+                || !CriminalReasonerClientModule.isActiveReasoner(client)) {
+            close();
+        }
+    }
+
+    /**
+     * Vanilla {@code Screen.render} calls this once before the widgets: the dark backing and the role accent down the
+     * left edge, as in the source menu. No blur, and the round keeps running behind the menu (JudgeSelectionScreen).
+     * 原版 {@code Screen.render} 在绘制控件前只调用本方法一次：深色底与左缘身份色强调条，与原版菜单一致。不做模糊，
+     * 菜单后方的回合照常进行（参照 JudgeSelectionScreen）。
+     */
+    @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
         context.fill(0, 0, width, height, 0xC0101010);
         context.fill(0, 0, 4, height, 0xFF000000 | CriminalReasonerRules.COLOR);
+    }
 
-        // Children (the avatar tiles) first: everything drawn afterwards sits above them.
-        // 先画子控件（头像格子）；之后再画的内容都在它们之上。
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        // Background, then the children (avatar tiles, buttons): everything drawn afterwards sits above them.
+        // 先画背景，再画子控件（头像格子、按钮）；之后再画的内容都在它们之上。
         super.render(context, mouseX, mouseY, delta);
 
         boolean selectingVictim = selectedVictim == null;
@@ -210,7 +277,7 @@ public final class CriminalReasonerScreen extends Screen {
         }
 
         for (SectionLabel label : sectionLabels) {
-            if (label.y() >= GRID_TOP - 20 && label.y() <= viewBottom) {
+            if (inView(label.y(), textRenderer.fontHeight)) {
                 context.drawCenteredTextWithShadow(textRenderer, label.text(),
                         label.centerX(), label.y(), 0xA0A0A0);
             }
@@ -229,10 +296,10 @@ public final class CriminalReasonerScreen extends Screen {
     /** Names under each avatar, trimmed to the cell. 头像下方的名字，按单元格宽度截断。 */
     private void drawTileNames(DrawContext context) {
         for (CriminalReasonerPlayerButton button : buttons) {
-            int nameY = button.getY() + ICON + 2;
-            if (nameY > viewBottom - 10) {
+            if (!button.visible) {
                 continue;
             }
+            int nameY = button.getY() + ICON + 2;
             String name = button.getMessage().getString();
             String clipped = textRenderer.getWidth(name) > CELL_WIDTH - 4
                     ? textRenderer.trimToWidth(name, CELL_WIDTH - 8) + "…"

@@ -1,7 +1,9 @@
 package dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.doctor4t.wathe.api.Role;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 犯罪推理学家 Criminal Reasoner — neutral role that wins by naming every victim's killer.
@@ -17,6 +19,9 @@ import net.minecraft.util.Identifier;
 public final class CriminalReasonerRules {
 
     public static final Identifier ROLE_ID = SparkWitch.id("criminal_reasoner");
+
+    /** Forced-cooldown store id of the reasoning skill (store 31). 推理技能的强制冷却存储 id（第 31 个存储）。 */
+    public static final Identifier REASONING_SKILL_ID = SparkWitch.id("criminal_reasoner_reasoning");
 
     /** Identity colour from the source build: (112, 75, 75). 沿用原实现的身份色 (112, 75, 75)。 */
     public static final int COLOR = 0x704B4B;
@@ -43,6 +48,24 @@ public final class CriminalReasonerRules {
     /** Victim count divisor for the win threshold: floor(players / 3). 胜利阈值：⌊开局人数 / 3⌋。 */
     public static final int WIN_THRESHOLD_DIVISOR = 3;
 
+    /** How long a menu roster stays valid on the server, in ticks (30 s). 菜单名单在服务端的有效期（30 秒）。 */
+    public static final int MENU_SESSION_TICKS = 30 * 20;
+
     private CriminalReasonerRules() {
+    }
+
+    /** The exact role, never a disguise. 精确职业，从不是伪装。 */
+    public static boolean isReasoner(@Nullable Role role) {
+        return role != null && ROLE_ID.equals(role.identifier());
+    }
+
+    /** Victims to solve for the win: floor(players / 3), at least 1. 获胜需解出的死者数：⌊人数 / 3⌋，至少 1。 */
+    public static int requiredSolves(int roundPlayers) {
+        return Math.max(1, roundPlayers / WIN_THRESHOLD_DIVISOR);
+    }
+
+    /** A threshold of 0 means "not set up this round" and never wins. 阈值为 0 表示本局未初始化，永不获胜。 */
+    public static boolean hasWon(int solved, int required) {
+        return required > 0 && solved >= required;
     }
 }

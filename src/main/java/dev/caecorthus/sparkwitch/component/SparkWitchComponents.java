@@ -37,6 +37,7 @@ import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent
 import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterFearComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterOtherworldComponent;
@@ -307,11 +308,13 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, KokoComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(KokoComponent::new);
-        // 犯罪推理学家：推理记录、胜利进度与隐身充能。不跨命继承。
-        registry.beginRegistration(PlayerEntity.class,
-                        dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerComponent.KEY)
+        // 犯罪推理学家 (PR #228): the server-only answer key, solved victims, win progress, invisibility charges and the
+        // cooldown readout; synced to the owner only (never the answer key); appended last, after 泽渡可可's component.
+        // 犯罪推理学家（PR #228）：仅服务端的答案、已解出的死者、胜利进度、隐身充能与冷却读数；只同步给本人（从不同步答案）；
+        // 追加在最后，位于泽渡可可的组件之后。
+        registry.beginRegistration(PlayerEntity.class, CriminalReasonerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
-                .end(dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerComponent::new);
+                .end(CriminalReasonerComponent::new);
     }
 
     @Override

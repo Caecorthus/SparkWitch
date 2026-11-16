@@ -57,6 +57,14 @@ public final class CriminalReasonerComponent implements AutoSyncedComponent {
         sync();
     }
 
+    /** Clears and syncs only when something is held. 只在确有内容时才清空并同步。 */
+    public void resetIfDirty() {
+        if (!victimToKiller.isEmpty() || !solvedVictims.isEmpty() || successfulReasoningCount != 0
+                || requiredReasoningCount != 0 || invisibilityCharges != 0 || cooldownSeconds != 0) {
+            reset();
+        }
+    }
+
     public void sync() {
         KEY.sync(player);
     }
@@ -65,8 +73,9 @@ public final class CriminalReasonerComponent implements AutoSyncedComponent {
         if (victimUuid == null || killerUuid == null) {
             return;
         }
+        // The answer key is server-only, so recording it changes nothing the owner's client sees.
+        // 答案只在服务端，记录它不会改变本人客户端可见的任何内容，因此无需同步。
         victimToKiller.put(victimUuid, killerUuid);
-        sync();
     }
 
     /** True when the suspected killer is the recorded one. 嫌疑人是否就是记录在案的凶手。 */
@@ -87,6 +96,11 @@ public final class CriminalReasonerComponent implements AutoSyncedComponent {
         invisibilityCharges += CriminalReasonerRules.CHARGES_PER_SUCCESS;
         sync();
         return true;
+    }
+
+    /** Server only: whether this death has an attributed killer. 仅服务端：这起死亡是否有归因凶手。 */
+    public boolean hasRecordedKiller(UUID victimUuid) {
+        return victimUuid != null && victimToKiller.containsKey(victimUuid);
     }
 
     public boolean hasSolvedVictim(UUID victimUuid) {

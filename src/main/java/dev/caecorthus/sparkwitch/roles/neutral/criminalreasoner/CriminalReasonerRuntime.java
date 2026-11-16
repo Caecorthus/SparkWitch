@@ -1,29 +1,45 @@
 package dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner;
 
+import dev.caecorthus.sparkwitch.SparkWitch;
+import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
+import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
 import dev.caecorthus.sparkwitch.net.OpenCriminalReasonerS2CPacket;
 import dev.caecorthus.sparkwitch.registry.SparkWitchRoleRegistry;
+import dev.caecorthus.sparkwitch.roles.civilian.controlexpert.ControlExpertStun;
+import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanWinService;
+import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendWinService;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderDoorRules;
+import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoWinService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchFearService;
+import dev.caecorthus.sparkwitch.roles.witch.grandwitch.factor.WitchFactorTraitsBridge;
 import dev.doctor4t.wathe.api.event.CheckWinCondition;
 import dev.doctor4t.wathe.api.event.DoorInteraction;
+import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.api.event.KillPlayer;
+import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.api.event.RoleAssigned;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
-import dev.doctor4t.wathe.api.event.GameEvents;
 import dev.doctor4t.wathe.game.GameFunctions;
+import dev.doctor4t.wathe.record.GameRecordManager;
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import org.agmas.noellesroles.ModItems;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -39,11 +55,24 @@ import java.util.UUID;
  * and the neutral win.
  * <p>Ported from NoellesRoles' Parox build. Death attribution follows its rule: a recorded killer wins, and a death
  * with no killer counts as self-inflicted only for the reasons that build treats that way.
+ * <p>Every timer here (menu session, reasoning cooldown, delayed notice) reads one clock, the server tick counter
+ * ({@link MinecraftServer#getTicks()}); world time is a different, persisted clock and must never be mixed in.
  * 犯罪推理学家运行期：开局准备、死亡归因、推理菜单、隐身、成功通知与中立胜利。
  * <p>移植自 NoellesRoles 的 Parox 版本。死亡归因沿用其规则：有凶手就记凶手；
  * 无凶手时，只有原实现视为“自责”的死因才记成死者自己。
+ * <p>这里的所有计时（菜单会话、推理冷却、延迟通知）只读同一个时钟：服务器刻计数（{@link MinecraftServer#getTicks()}）；
+ * 世界时间是另一个会持久化的时钟，绝不能混用。
  */
 public final class CriminalReasonerRuntime {
+
+    /**
+     * Stable contract: the win listener's phase on Wathe's first-non-null {@code CheckWinCondition}, after the Fiend
+     * Moment, the Charon's Soul Moment and Koko, and before the default phase, so a default-phase {@code block()} (the
+     * Murderous Witch, the witch faction) cannot hide the Reasoner's win.
+     * 稳定契约：胜负监听器在 Wathe「首个非 null 生效」的 {@code CheckWinCondition} 上的阶段，排在魔人时刻、卡戎亡魂时刻与
+     * 可可之后、默认阶段之前，因此默认阶段的 {@code block()}（杀意魔女、魔女阵营）无法盖住推理学家的胜利。
+     */
+    public static final Identifier WIN_PHASE = SparkWitch.id("criminal_reasoner_win");
 
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
     private static final Map<UUID, Long> COOLDOWN_UNTIL = new HashMap<>();
@@ -57,105 +86,120 @@ public final class CriminalReasonerRuntime {
             GameConstants.DeathReasons.ESCAPED
     );
 
-    private static final Identifier MASTER_KEY_ID = Identifier.of("noellesroles", "neutral_master_key");
+    private static boolean registered;
 
     private CriminalReasonerRuntime() {
     }
 
-    public static void register() {
+    public static synchronized void register() {
+        if (registered) {
+            return;
+        }
+        registered = true;
         CriminalReasonerReplay.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (player instanceof ServerPlayerEntity serverPlayer
                     && role != null && CriminalReasonerRules.ROLE_ID.equals(role.identifier())) {
-                // Assign starts the ledger; the win threshold is recomputed once the whole deal is complete.
-                // 分配时先清账并给钥匙；阈值等全部身份发完再算。
+                // Assign starts the ledger; the key and the win threshold wait for the final deal.
+                // 分配时先清账；钥匙与胜利阈值等全部身份发完再处理。
                 CriminalReasonerComponent component = CriminalReasonerComponent.KEY.get(serverPlayer);
                 component.reset();
-                giveMasterKey(serverPlayer);
                 // Neutral: may not pick up the revolver (source rule "不能捡左轮").
                 // 中立：不允许捡起左轮手枪（原规则“不可捡枪”）。
                 if (serverPlayer.getWorld() instanceof ServerWorld world) {
-                    GameWorldComponent.KEY.get(world).addToPreventGunPickup(serverPlayer);
+                    GameWorldComponent game = GameWorldComponent.KEY.get(world);
+                    game.addToPreventGunPickup(serverPlayer);
+                    // A Reasoner forced in mid-round gets his threshold now; a dealt one gets it at round start.
+                    // 回合进行中被强制设为推理学家时立即获得阈值；正常发放的在开局时获得。
+                    if (game.getGameStatus() == GameWorldComponent.GameStatus.ACTIVE) {
+                        component.setRequiredReasoningCount(
+                                CriminalReasonerRules.requiredSolves(game.getAllPlayers().size()));
+                    }
                 }
             }
         });
-        GameEvents.ON_FINISH_INITIALIZE.register((world, gameComponent) -> {
-            if (!(world instanceof ServerWorld serverWorld)) {
-                return;
-            }
-            int required = Math.max(1, gameComponent.getAllPlayers().size()
-                    / CriminalReasonerRules.WIN_THRESHOLD_DIVISOR);
-            for (UUID uuid : gameComponent.getAllWithRole(SparkWitchRoleRegistry.criminalReasoner())) {
-                ServerPlayerEntity player = serverWorld.getServer().getPlayerManager().getPlayer(uuid);
-                if (player != null) {
-                    CriminalReasonerComponent.KEY.get(player).setRequiredReasoningCount(required);
-                    // Round-start cooldown: nobody reasons in the opening seconds. / 回合初始冷却：开局不能立刻推理。
-                    COOLDOWN_UNTIL.put(uuid,
-                            serverWorld.getTime() + CriminalReasonerRules.INITIAL_COOLDOWN_TICKS);
-                    CriminalReasonerComponent.KEY.get(player).setCooldownSeconds(
-                            CriminalReasonerRules.INITIAL_COOLDOWN_TICKS / 20);
-                }
-            }
-        });
+        GameEvents.ON_FINISH_INITIALIZE.register(CriminalReasonerRuntime::onRoundStart);
         KillPlayer.AFTER.register(CriminalReasonerRuntime::afterKill);
-        CheckWinCondition.EVENT.register(CriminalReasonerRuntime::checkWin);
+        CheckWinCondition.EVENT.addPhaseOrdering(FiendWinService.PHASE, WIN_PHASE);
+        CheckWinCondition.EVENT.addPhaseOrdering(FerrymanWinService.PHASE, WIN_PHASE);
+        CheckWinCondition.EVENT.addPhaseOrdering(KokoWinService.PHASE, WIN_PHASE);
+        CheckWinCondition.EVENT.addPhaseOrdering(WIN_PHASE, Event.DEFAULT_PHASE);
+        CheckWinCondition.EVENT.register(WIN_PHASE, CriminalReasonerRuntime::checkWin);
+        // Both logical sides, so the client predicts the same door answer and key cooldown.
+        // 两个逻辑端都注册，客户端因此预测相同的开门结果与钥匙冷却。
         DoorInteraction.EVENT.register(CriminalReasonerRuntime::doorInteraction);
+        ResetPlayer.EVENT.register(CriminalReasonerRuntime::forget);
         ServerTickEvents.END_SERVER_TICK.register(CriminalReasonerRuntime::tick);
-        // Mirror the remaining cooldown to the owner's HUD once per changed second.
-        // 冷却剩余每秒变化时推给本人 HUD。
-        ServerTickEvents.END_SERVER_TICK.register(server -> {
-            if (COOLDOWN_UNTIL.isEmpty()) {
-                return;
-            }
-            long nowTicks = server.getTicks();
-            COOLDOWN_UNTIL.entrySet().removeIf(entry -> {
-                ServerPlayerEntity owner = server.getPlayerManager().getPlayer(entry.getKey());
-                long remaining = entry.getValue() - nowTicks;
-                if (owner != null) {
-                    CriminalReasonerComponent.KEY.get(owner)
-                            .setCooldownSeconds((int) Math.max(0, Math.ceil(remaining / 20.0)));
-                }
-                return remaining <= 0;
-            });
-        });
     }
 
-    /** The role carries a neutral master key and may open what it opens. 该身份携带中立万能钥匙，并可开它能开的门。 */
-    private static void giveMasterKey(ServerPlayerEntity player) {
-        var item = Registries.ITEM.get(MASTER_KEY_ID);
-        if (item != Items.AIR) {
-            player.giveItemStack(new ItemStack(item));
+    /**
+     * Round start on final roles: the win threshold, the 45 s opening cooldown and one neutral master key per living
+     * Reasoner that does not hold one yet (Koko / Insider pattern; a full inventory drops it at his feet).
+     * 按最终身份开局：胜利阈值、45 秒开局冷却，以及给每名尚未持有钥匙的存活推理学家一把中立万能钥匙（沿用可可 / 内应的做法；
+     * 背包已满时掉在脚下）。
+     */
+    private static void onRoundStart(net.minecraft.world.World world, GameWorldComponent game) {
+        if (!(world instanceof ServerWorld serverWorld)) {
+            return;
+        }
+        clearRoundState();
+        MinecraftServer server = serverWorld.getServer();
+        int required = CriminalReasonerRules.requiredSolves(game.getAllPlayers().size());
+        for (UUID uuid : game.getAllWithRole(SparkWitchRoleRegistry.criminalReasoner())) {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+            if (player == null) {
+                continue;
+            }
+            CriminalReasonerComponent component = CriminalReasonerComponent.KEY.get(player);
+            component.setRequiredReasoningCount(required);
+            COOLDOWN_UNTIL.put(uuid, (long) server.getTicks() + CriminalReasonerRules.INITIAL_COOLDOWN_TICKS);
+            component.setCooldownSeconds(CriminalReasonerRules.INITIAL_COOLDOWN_TICKS / 20);
+            // The game is still STARTING here, so liveness is read from Wathe's dead list.
+            // 此时对局仍处于 STARTING，因此存活状态取自 Wathe 的死亡名单。
+            PlayerInventory inventory = player.getInventory();
+            if (!game.isPlayerDead(uuid)
+                    && !inventory.contains(stack -> stack.isOf(ModItems.NEUTRAL_MASTER_KEY))) {
+                inventory.offerOrDrop(new ItemStack(ModItems.NEUTRAL_MASTER_KEY));
+                inventory.markDirty();
+                player.currentScreenHandler.sendContentUpdates();
+            }
         }
     }
 
     private static DoorInteraction.DoorInteractionResult doorInteraction(
             DoorInteraction.DoorInteractionContext context) {
-        if (context.isOpen() || context.isBlasted() || context.isJammed()) {
-            return DoorInteraction.DoorInteractionResult.PASS;
-        }
-        boolean trainDoor = context.getDoorType() == DoorInteraction.DoorType.TRAIN_DOOR;
-        if (!trainDoor && !context.requiresKey()) {
-            return DoorInteraction.DoorInteractionResult.PASS;
-        }
         PlayerEntity player = context.getPlayer();
-        if (!isReasoner(player)) {
-            return DoorInteraction.DoorInteractionResult.PASS;
+        DoorInteraction.DoorInteractionResult result = InsiderDoorRules.masterKeyDoorResult(
+                // handItem is Wathe's copy of the main-hand stack. / handItem 是 Wathe 复制的主手物品栈。
+                context.getHandItem().isOf(ModItems.NEUTRAL_MASTER_KEY),
+                isReasoner(player),
+                context.getDoorType(),
+                context.isBlasted(),
+                context.isJammed(),
+                context.isOpen(),
+                context.requiresKey(),
+                player.getItemCooldownManager().isCoolingDown(ModItems.NEUTRAL_MASTER_KEY)
+        );
+        if (result == DoorInteraction.DoorInteractionResult.ALLOW) {
+            player.getItemCooldownManager().set(ModItems.NEUTRAL_MASTER_KEY, InsiderRules.MASTER_KEY_COOLDOWN_TICKS);
         }
-        if (!context.getHandItem().isOf(Registries.ITEM.get(MASTER_KEY_ID))) {
-            return DoorInteraction.DoorInteractionResult.PASS;
-        }
-        return DoorInteraction.DoorInteractionResult.ALLOW;
+        return result;
     }
 
     /**
-     * Records who killed whom for every live reasoner.
+     * Records who killed whom for every Reasoner in the round.
      * <p>A killer always wins the attribution. Without one, only the source build's self-attributed reasons count as
-     * the victim killing himself; every other killer-less death stays unrecorded and cannot be reasoned about.
-     * 为每位存活的推理学家记录谁杀了谁。
+     * the victim killing himself; every other killer-less death stays unrecorded and is never offered in the menu.
+     * 为本局每位推理学家记录谁杀了谁。
      * <p>有凶手时一律记凶手；没有凶手时，只有原实现视为自责的死因才记成死者自己，
-     * 其余无凶手的死亡不记录，也就无法被推理。
+     * 其余无凶手的死亡不记录，也不会出现在菜单中。
      */
-    private static void afterKill(ServerPlayerEntity victim, ServerPlayerEntity killer, Identifier deathReason) {
+    private static void afterKill(ServerPlayerEntity victim, @Nullable ServerPlayerEntity killer,
+                                  @Nullable Identifier deathReason) {
+        // A SparkTraits Last Stand interception is not a death. / SparkTraits 背水一战的拦截不算死亡。
+        if (WitchFactorTraitsBridge.isDeathIntercepted(victim)) {
+            return;
+        }
         UUID recordedKiller = killer != null ? killer.getUuid() : null;
         if (recordedKiller == null && deathReason != null && SELF_ATTRIBUTED_DEATHS.contains(deathReason)) {
             recordedKiller = victim.getUuid();
@@ -173,17 +217,22 @@ public final class CriminalReasonerRuntime {
         }
     }
 
-    /** Neutral win once the required number of victims has been solved. 解出达到阈值的死者后中立胜利。 */
-    private static CheckWinCondition.WinResult checkWin(ServerWorld world, GameWorldComponent game,
-                                                        GameFunctions.WinStatus status) {
+    /**
+     * Neutral win once the required number of victims has been solved; {@code null} otherwise, so he blocks nobody.
+     * A swallowed Reasoner or one inside a Rift Gate (an alive spectator) cannot win from in there.
+     * 解出达到阈值的死者后中立胜利；否则返回 {@code null}，不阻止任何一方。被吞下或身处裂隙门内（存活的旁观者）时不能获胜。
+     */
+    private static CheckWinCondition.@Nullable WinResult checkWin(ServerWorld world, GameWorldComponent game,
+                                                                 GameFunctions.WinStatus status) {
         for (UUID uuid : game.getAllWithRole(SparkWitchRoleRegistry.criminalReasoner())) {
             ServerPlayerEntity reasoner = world.getServer().getPlayerManager().getPlayer(uuid);
-            if (reasoner == null || !GameFunctions.isPlayerPlayingAndAlive(reasoner)) {
+            if (reasoner == null || !GameFunctions.isPlayerPlayingAndAlive(reasoner) || reasoner.isSpectator()
+                    || NoellesTaotieSeekerBridge.isSwallowed(reasoner)) {
                 continue;
             }
             CriminalReasonerComponent component = CriminalReasonerComponent.KEY.get(reasoner);
-            int required = component.getRequiredReasoningCount();
-            if (required > 0 && component.getSuccessfulReasoningCount() >= required) {
+            if (CriminalReasonerRules.hasWon(component.getSuccessfulReasoningCount(),
+                    component.getRequiredReasoningCount())) {
                 return CheckWinCondition.WinResult.neutralWin(reasoner, List.of(reasoner));
             }
         }
@@ -192,26 +241,28 @@ public final class CriminalReasonerRuntime {
 
     /** Builds the roster and opens the menu on the client. 生成名单并在客户端打开菜单。 */
     public static void openSelection(ServerPlayerEntity reasoner) {
-        boolean reasonerRole = isReasoner(reasoner);
-        boolean alive = GameFunctions.isPlayerPlayingAndAlive(reasoner);
-        // Logged because "the key does nothing" is otherwise indistinguishable from a dropped packet.
-        // 记日志：“按键没反应”否则无法区分是角色不对还是包丢了。
-        dev.caecorthus.sparkwitch.SparkWitch.LOGGER.info(
-                "[criminal_reasoner] open request from {} reasoner={} alive={}",
-                reasoner.getGameProfile().getName(), reasonerRole, alive);
-        if (!reasonerRole || !alive) {
+        if (!mayAct(reasoner) || !(reasoner.getWorld() instanceof ServerWorld world)) {
             return;
         }
-        if (!(reasoner.getWorld() instanceof ServerWorld world)) {
+        // No menu while cooling down: a guess built now could only be refused. / 冷却中不开菜单：此时拼出的推理只会被拒绝。
+        if (refuseIfCoolingDown(reasoner, world.getServer().getTicks())) {
             return;
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
         CriminalReasonerComponent component = CriminalReasonerComponent.KEY.get(reasoner);
 
+        // Only attributable, unsolved deaths: a death with no recorded killer can never be answered right, and his own
+        // kills are not puzzles (he can never name himself).
+        // 只列出可归因且未解出的死亡：没有记录凶手的死亡永远不可能答对；他自己造成的死亡不是谜题（他不能指认自己）。
         List<UUID> victimUuids = new ArrayList<>();
         List<String> victimNames = new ArrayList<>();
         for (UUID uuid : game.getAllPlayers()) {
-            if (uuid.equals(reasoner.getUuid()) || component.hasSolvedVictim(uuid) || !game.isPlayerDead(uuid)) {
+            if (victimUuids.size() >= OpenCriminalReasonerS2CPacket.MAX_ENTRIES) {
+                break;
+            }
+            if (uuid.equals(reasoner.getUuid()) || component.hasSolvedVictim(uuid) || !game.isPlayerDead(uuid)
+                    || !component.hasRecordedKiller(uuid)
+                    || component.isCorrectReasoning(uuid, reasoner.getUuid())) {
                 continue;
             }
             victimUuids.add(uuid);
@@ -225,6 +276,9 @@ public final class CriminalReasonerRuntime {
         // Suspects include the dead: the source menu lists an "alive" and a "dead" section.
         // 嫌疑人包含死者：原版菜单分「存活玩家」与「死亡玩家」两节。
         for (UUID uuid : game.getAllPlayers()) {
+            if (suspectUuids.size() >= OpenCriminalReasonerS2CPacket.MAX_ENTRIES) {
+                break;
+            }
             if (uuid.equals(reasoner.getUuid())) {
                 continue;
             }
@@ -232,34 +286,32 @@ public final class CriminalReasonerRuntime {
             suspectNames.add(nameOf(world, uuid));
         }
 
+        if (!ServerPlayNetworking.canSend(reasoner, OpenCriminalReasonerS2CPacket.ID)) {
+            return;
+        }
         UUID sessionId = UUID.randomUUID();
-        SESSIONS.put(reasoner.getUuid(), new Session(sessionId, world.getTime()));
+        SESSIONS.put(reasoner.getUuid(), new Session(sessionId, world.getServer().getTicks()));
         ServerPlayNetworking.send(reasoner, new OpenCriminalReasonerS2CPacket(
                 sessionId, victimUuids, victimNames, suspectUuids, suspectNames));
     }
 
     /** Validates and resolves one reasoning attempt from the menu. 校验并结算菜单提交的一次推理。 */
     public static void reason(ServerPlayerEntity reasoner, UUID sessionId, UUID victimId, UUID suspectId) {
-        if (!isReasoner(reasoner) || !GameFunctions.isPlayerPlayingAndAlive(reasoner)) {
+        if (!mayAct(reasoner) || !(reasoner.getWorld() instanceof ServerWorld world)) {
             return;
         }
-        long now = reasoner.getServer().getTicks();
+        long now = world.getServer().getTicks();
         Session session = SESSIONS.get(reasoner.getUuid());
         if (session == null || !session.id().equals(sessionId) || session.expired(now)) {
             SESSIONS.remove(reasoner.getUuid());
             return;
         }
-        if (!(reasoner.getWorld() instanceof ServerWorld world)) {
-            return;
-        }
-        long cooldownUntil = COOLDOWN_UNTIL.getOrDefault(reasoner.getUuid(), 0L);
-        if (now < cooldownUntil) {
-            reasoner.sendMessage(Text.translatable("tip.sparkwitch.criminal_reasoner.cooldown",
-                    (cooldownUntil - now) / 20).formatted(Formatting.GRAY), true);
+        if (refuseIfCoolingDown(reasoner, now)) {
             return;
         }
         GameWorldComponent game = GameWorldComponent.KEY.get(world);
-        if (victimId.equals(reasoner.getUuid()) || !game.isPlayerDead(victimId)) {
+        if (victimId.equals(reasoner.getUuid()) || suspectId.equals(reasoner.getUuid())
+                || !game.isPlayerDead(victimId) || !game.getAllPlayers().contains(suspectId)) {
             return;
         }
         SESSIONS.remove(reasoner.getUuid());
@@ -283,21 +335,29 @@ public final class CriminalReasonerRuntime {
                 : CriminalReasonerRules.FAIL_COOLDOWN_TICKS;
         COOLDOWN_UNTIL.put(reasoner.getUuid(), now + cooldownTicks);
         component.setCooldownSeconds(cooldownTicks / 20);
-        component.sync();
         // Replay line: who reasoned which victim was killed by whom, and whether it held.
         // 回放记录：谁推测哪名死者被谁所杀，以及是否猜对。
-        net.minecraft.nbt.NbtCompound replay = new net.minecraft.nbt.NbtCompound();
+        NbtCompound replay = new NbtCompound();
         replay.putUuid("victim", victimId);
         replay.putUuid("suspect", suspectId);
         replay.putBoolean("success", correct);
-        dev.doctor4t.wathe.record.GameRecordManager.recordSkillUse(
-                reasoner, CriminalReasonerRules.ROLE_ID,
+        GameRecordManager.recordSkillUse(reasoner, CriminalReasonerRules.ROLE_ID,
                 world.getServer().getPlayerManager().getPlayer(suspectId), replay);
+    }
+
+    private static boolean refuseIfCoolingDown(ServerPlayerEntity reasoner, long now) {
+        long cooldownUntil = COOLDOWN_UNTIL.getOrDefault(reasoner.getUuid(), 0L);
+        if (now >= cooldownUntil) {
+            return false;
+        }
+        reasoner.sendMessage(Text.translatable("tip.sparkwitch.criminal_reasoner.cooldown",
+                (cooldownUntil - now + 19) / 20).formatted(Formatting.GRAY), true);
+        return true;
     }
 
     /** Spends one charge for a 20 s invisibility; a second activation waits for it to end. 消耗充能隐身 20 秒。 */
     public static void activateInvisibility(ServerPlayerEntity reasoner) {
-        if (!isReasoner(reasoner) || !GameFunctions.isPlayerPlayingAndAlive(reasoner)) {
+        if (!mayAct(reasoner)) {
             return;
         }
         if (reasoner.hasStatusEffect(StatusEffects.INVISIBILITY)) {
@@ -318,17 +378,86 @@ public final class CriminalReasonerRuntime {
                 true));
     }
 
+    /**
+     * Server gate shared by the three payloads: the exact role in an ACTIVE round, alive and not spectating, not
+     * swallowed, stunned or role-skill-blocked by SparkTraits, and not under the Grand Witch's Fear (which answers
+     * with its own action-bar line). The payload policy drops most of these earlier; this re-checks server state.
+     * 三个数据包共用的服务端门槛：ACTIVE 回合中的精确职业、存活且非旁观、未被吞下、未被眩晕、未被 SparkTraits 禁用职业技能，
+     * 且不在大魔女的恐惧中（恐惧会回复自己的动作栏提示）。数据包策略通常已更早丢弃这些请求；这里按服务端状态复查。
+     */
+    private static boolean mayAct(ServerPlayerEntity player) {
+        if (!isReasoner(player)
+                || GameWorldComponent.KEY.get(player.getWorld()).getGameStatus()
+                        != GameWorldComponent.GameStatus.ACTIVE
+                || !GameFunctions.isPlayerPlayingAndAlive(player) || player.isSpectator()
+                || NoellesTaotieSeekerBridge.isSwallowed(player)
+                || ControlExpertStun.isStunned(player)
+                || SparkTraitsKillerBridge.isRoleSkillBlocked(player)) {
+            return false;
+        }
+        return !GrandWitchFearService.denyRoleSkillIfFeared(player);
+    }
+
     public static void clearRoundState() {
         SESSIONS.clear();
         COOLDOWN_UNTIL.clear();
         NOTICES.clear();
     }
 
+    /**
+     * Wathe's {@code ResetPlayer}: drops this player's menu session, cooldown and ledger (the component only syncs when
+     * it held something, since Wathe resets lobby players every second).
+     * Wathe 的 {@code ResetPlayer}：丢弃该玩家的菜单会话、冷却与记录（组件只在确有内容时才同步，因为 Wathe 每秒都会重置大厅里的玩家）。
+     */
+    private static void forget(ServerPlayerEntity player) {
+        SESSIONS.remove(player.getUuid());
+        COOLDOWN_UNTIL.remove(player.getUuid());
+        CriminalReasonerComponent.KEY.get(player).resetIfDirty();
+    }
+
+    /**
+     * Forced-cooldown store (SparkWitchForcedCooldowns store 31): ticks left on the reasoning cooldown, 0 when ready.
+     * 强制冷却存储（SparkWitchForcedCooldowns 第 31 个存储）：推理冷却剩余刻数，就绪时为 0。
+     */
+    public static int reasoningCooldownTicks(ServerPlayerEntity player) {
+        long until = COOLDOWN_UNTIL.getOrDefault(player.getUuid(), 0L);
+        return (int) Math.max(0L, Math.min(Integer.MAX_VALUE, until - player.getServer().getTicks()));
+    }
+
+    /**
+     * Forced-cooldown store writer: sets the reasoning cooldown to exactly {@code ticks} from now (0 or less clears it)
+     * and refreshes the owner's HUD second. SparkFactionAPI's raise/extend only ever pass a longer value.
+     * 强制冷却存储的写入：把推理冷却精确设为从现在起 {@code ticks} 刻（0 或更小即清除），并刷新本人 HUD 的秒数。
+     * SparkFactionAPI 的抬高 / 延长只会传入更长的值。
+     */
+    public static void setReasoningCooldownTicks(ServerPlayerEntity player, int ticks) {
+        if (ticks <= 0) {
+            COOLDOWN_UNTIL.remove(player.getUuid());
+            CriminalReasonerComponent.KEY.get(player).setCooldownSeconds(0);
+            return;
+        }
+        COOLDOWN_UNTIL.put(player.getUuid(), (long) player.getServer().getTicks() + ticks);
+        CriminalReasonerComponent.KEY.get(player).setCooldownSeconds((ticks + 19) / 20);
+    }
+
     private static void tick(MinecraftServer server) {
+        long now = server.getTicks();
+        // Mirror the remaining cooldown to the owner's HUD; the component syncs only when the second changes.
+        // 把剩余冷却同步给本人 HUD；组件只在显示的秒数变化时同步。
+        if (!COOLDOWN_UNTIL.isEmpty()) {
+            COOLDOWN_UNTIL.entrySet().removeIf(entry -> {
+                ServerPlayerEntity owner = server.getPlayerManager().getPlayer(entry.getKey());
+                long remaining = entry.getValue() - now;
+                if (owner != null) {
+                    CriminalReasonerComponent.KEY.get(owner)
+                            .setCooldownSeconds((int) Math.max(0, (remaining + 19) / 20));
+                }
+                return remaining <= 0;
+            });
+        }
         if (NOTICES.isEmpty()) {
             return;
         }
-        long now = server.getTicks();
         List<PendingNotice> ready = new ArrayList<>();
         NOTICES.removeIf(notice -> {
             if (notice.dueTick() <= now) {
@@ -376,17 +505,17 @@ public final class CriminalReasonerRuntime {
                 : Text.translatable("screen.sparkwitch.criminal_reasoner.unknown_player").getString();
     }
 
-    private static boolean isReasoner(PlayerEntity player) {
-        if (!(player.getWorld() instanceof ServerWorld world)) {
+    /** The exact assigned role from Wathe's synced component; safe on both sides. 读取 Wathe 同步的真实职业；两端均可调用。 */
+    public static boolean isReasoner(@Nullable PlayerEntity player) {
+        if (player == null) {
             return false;
         }
-        var role = GameWorldComponent.KEY.get(world).getRole(player);
-        return role != null && CriminalReasonerRules.ROLE_ID.equals(role.identifier());
+        return CriminalReasonerRules.isReasoner(GameWorldComponent.KEY.get(player.getWorld()).getRole(player));
     }
 
     private record Session(UUID id, long openedAtTick) {
         boolean expired(long now) {
-            return now - openedAtTick > 30 * 20;
+            return now - openedAtTick > CriminalReasonerRules.MENU_SESSION_TICKS;
         }
     }
 
