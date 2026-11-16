@@ -92,10 +92,13 @@ public final class SaviorLightsaberCombatService {
                 playKillSound(killer, victim);
             }
         });
-        // Terminal reasons: SparkTraits treats these as unprotected kills (no Last Escape / Last Stand / Depression).
-        // 终结原因：SparkTraits 视为不可保护的击杀（无绝处逢生/背水一战/抑郁保护）。
-        SparkTraitsKillerBridge.registerTerminalDeathReason(SaviorRules.PISTOL_DEATH_REASON);
-        SparkTraitsKillerBridge.registerTerminalDeathReason(SaviorRules.LIGHTSABER_DEATH_REASON);
+        // Deliberately NOT SparkTraits-terminal (owner, 2026-11-16): both weapons are combat kills, so every SparkTraits
+        // trait protection (Last Escape, Last Stand, Depression, Stands Firm) answers them as it answers a Wathe gun or
+        // bat. Registering them made a Last Escape killer die to one shot. The SparkWitch-local piercing rules keyed on
+        // SaviorRules.isTerminalKill (Saint, NoellesRoles shields, Charon pardon, Hiro return) are unchanged.
+        // 有意不登记为 SparkTraits 终结死因（所有者 2026-11-16）：两把武器都是战斗击杀，因此 SparkTraits 的所有词条保护
+        // （绝处逢生、背水一战、抑郁、立场坚定）对其的反应与对 Wathe 枪/球棒相同。此前的登记让绝处逢生杀手一枪即死。
+        // 以 SaviorRules.isTerminalKill 为键的 SparkWitch 本地穿透规则（圣徒、NoellesRoles 护盾、卡戎宽恕、希罗回归）不变。
         // Pierce psycho armour (the Jester moment's shields) for these terminal weapon kills. Wathe's real-Jester
         // fake death only reacts to GUN/DEMON_HUNTER, so the custom reasons already skip it; this covers the shields.
         // 穿透精神护甲（小丑时刻的护盾）。Wathe 真正小丑的假死只认 GUN/恶魔猎手，所以自定义死因已绕过假死；这里补护盾。

@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.SparkWitchDeathReasons;
 import dev.caecorthus.sparkwitch.compat.NoellesTaotieSeekerBridge;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsKillerBridge;
+import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import dev.doctor4t.wathe.game.GameFunctions;
@@ -68,11 +69,11 @@ public final class FerrymanPardonService {
 
     /**
      * HEAD of Wathe's 5-arg {@code killPlayer}: returns true when the kill must be cancelled. Every victim that is not
-     * the Charon returns false at once, so no other role, weapon or reason reaches the pardon path. A forced or
-     * SparkTraits-terminal kill, a kill without an attacker, an unheld Wathe reason (train fall, disconnect…) and the
-     * window's own replay pass untouched: no window, no feign, no gaze spent.
+     * the Charon returns false at once, so no other role, weapon or reason reaches the pardon path. A forced,
+     * SparkTraits-terminal or Savior-weapon kill, a kill without an attacker, an unheld Wathe reason (train fall,
+     * disconnect…) and the window's own replay pass untouched: no window, no feign, no gaze spent.
      * Wathe 五参 {@code killPlayer} 的 HEAD：返回 true 表示必须取消这次击杀。凡不是摆渡人的受害者立即返回 false，
-     * 因此其他职业、武器与死因都不会进入宽恕路径。强制或 SparkTraits 终结击杀、没有攻击者的击杀、不扣住的 Wathe 死因
+     * 因此其他职业、武器与死因都不会进入宽恕路径。强制、SparkTraits 终结或救世主武器击杀、没有攻击者的击杀、不扣住的 Wathe 死因
      * （坠车、断线……）以及窗口自身的重放一律放行：不开窗口、不假死、不消耗瞥视。
      */
     public static boolean interceptKill(ServerPlayerEntity victim, boolean spawnBody,
@@ -82,7 +83,12 @@ public final class FerrymanPardonService {
                 || !FerrymanParticipation.isFerryman(victim)) {
             return false;
         }
-        boolean terminal = SparkTraitsKillerBridge.isTerminalDeathReason(deathReason);
+        // Savior weapon kills stay unpardonable as before (the Hiro return rule does the same): they stopped being
+        // SparkTraits-terminal so trait protections apply, and settleKill's retry would kill through an open window.
+        // 救世主武器击杀仍不可宽恕（与希罗回归规则一致）：它们不再是 SparkTraits 终结死因以便词条保护生效，而 settleKill 的
+        // 重试会直接穿过已开启的宽恕窗口。
+        boolean terminal = SparkTraitsKillerBridge.isTerminalDeathReason(deathReason)
+                || SaviorRules.isTerminalKill(deathReason);
         if (!FerrymanRules.mayHoldKill(replayingDeath, force, terminal, true, killer == victim, deathReason)) {
             return false;
         }

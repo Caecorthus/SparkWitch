@@ -62,7 +62,12 @@ public final class SaviorRules {
     public static final Identifier PISTOL_SHOOT_SOUND_ID = SparkWitch.id("item.savior_pistol.shoot");
     public static final Identifier PISTOL_CLICK_SOUND_ID = SparkWitch.id("item.savior_pistol.click");
     public static final Identifier LIGHTSABER_HIT_SOUND_ID = SparkWitch.id("item.savior_lightsaber.hit");
-    /** Terminal kill reasons: SparkTraits skips Last Escape / Last Stand / Depression protections for these. / 终结击杀原因。 */
+    /**
+     * The weapons' own kill reasons. They are SparkWitch-terminal ({@link #isTerminalKill}) but never SparkTraits-terminal:
+     * trait protections (Last Escape, Last Stand, Depression, Stands Firm) still apply to them.
+     * 两把武器自己的击杀死因。它们在 SparkWitch 内部算终结（{@link #isTerminalKill}），但从不登记为 SparkTraits 终结死因：
+     * 词条保护（绝处逢生、背水一战、抑郁、立场坚定）对其照常生效。
+     */
     public static final Identifier PISTOL_DEATH_REASON = SparkWitch.id("savior_pistol_kill");
     public static final Identifier LIGHTSABER_DEATH_REASON = SparkWitch.id("lightsaber_kill");
     public static final Identifier LIGHTSABER_IGNITE_SOUND_ID = SparkWitch.id("item.savior_lightsaber.ignite");
@@ -126,7 +131,13 @@ public final class SaviorRules {
                 && FactionIds.CIVILIAN.equals(SparkFactionApi.resolveEffectiveFaction(player, game));
     }
 
-    /** True for the two terminal Savior weapon reasons. / 救世主两把武器的终结死因。 */
+    /**
+     * True for the two Savior weapon reasons. "Terminal" here is SparkWitch-local only: the Saint, the NoellesRoles
+     * shields, the Charon pardon and the Hiro return treat these kills as unstoppable. SparkTraits trait protections are
+     * not part of it (see {@link #PISTOL_DEATH_REASON}).
+     * 救世主两把武器的死因。这里的“终结”仅限 SparkWitch 内部：圣徒、NoellesRoles 护盾、卡戎宽恕与希罗回归视其为不可阻挡。
+     * SparkTraits 词条保护不在此列（见 {@link #PISTOL_DEATH_REASON}）。
+     */
     public static boolean isTerminalKill(@Nullable Identifier deathReason) {
         return PISTOL_DEATH_REASON.equals(deathReason) || LIGHTSABER_DEATH_REASON.equals(deathReason);
     }
