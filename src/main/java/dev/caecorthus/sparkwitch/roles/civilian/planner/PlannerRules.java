@@ -299,11 +299,14 @@ public final class PlannerRules {
      * Smoothed per-tick decrease of Wathe's {@code nextTaskTimer} from two consecutive readings (one per world tick).
      * Other features may speed the timer up (SparkTraits Anxiety takes 1 or 2 ticks a tick, about 1.8x); a reading
      * above the previous one is Wathe re-arming the timer and is ignored, as is a first reading ({@code previous < 0}).
+     * A one-tick drop larger than {@link #MAX_NEXT_TASK_RATE} is a rewrite of the timer by another feature, not its
+     * pace, and is ignored too, so it cannot pin the estimate at the cap.
      * 由相邻两次读数（每世界刻一次）估计 Wathe {@code nextTaskTimer} 每刻平滑后的减少量。其他功能可能加快计时（SparkTraits
      * 焦虑每刻扣 1 或 2 刻，约 1.8 倍）；读数高于上一次表示 Wathe 重新设定了计时，予以忽略，首次读数（{@code previous < 0}）同样忽略。
+     * 单刻下降超过 {@link #MAX_NEXT_TASK_RATE} 是其他功能改写了计时而非其速度，同样忽略，避免估计值被顶到上限。
      */
     public static float nextTaskTimerRate(float rate, int previous, int current) {
-        if (previous < 0 || current > previous) {
+        if (previous < 0 || current > previous || previous - current > MAX_NEXT_TASK_RATE) {
             return rate;
         }
         float observed = previous - current;
