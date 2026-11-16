@@ -275,24 +275,35 @@ public final class PlannerRules {
 
     /** What the server does with a task slip. / 服务端如何处理一次任务单使用。 */
     public enum SlipVerdict {
-        /** Reroll. / 重排。 */
+        /** Reroll the target's tasks; the slip is used up. / 重排目标的任务；任务单用掉。 */
         USE,
+        /**
+         * Another player whose tasks cannot be rerolled (none, or a Bell Ringer Echo holds them): the slip is still
+         * handed over and used up with the normal lines, and nothing changes. / 另一名任务无法重排的玩家（没有任务，或
+         * 被敲钟人回响占用）：任务单照常递出并用掉，提示与正常情况相同，但什么都不改变。
+         */
+        HAND_OVER,
         /** Refuse silently (round, control). / 静默拒绝（回合、受控）。 */
         REFUSE,
-        /** Refuse with a line: no task can be rerolled; the slip is kept. / 提示拒绝：没有可重排的任务；任务单保留。 */
+        /** Self only: no task can be rerolled; the slip is kept. / 仅限自己：没有可重排的任务；任务单保留。 */
         NO_TASKS
     }
 
     /**
-     * Pure gate for the task slip. {@code locked}: the target's tasks are held by another feature (a Bell Ringer
-     * Echo), which reads as having nothing to reroll.
-     * 任务单的纯判定。{@code locked}：目标的任务被其他功能占用（敲钟人回响），视为没有可重排的任务。
+     * Pure gate for the task slip. {@code locked}: the target's tasks are held by a Bell Ringer Echo. On another
+     * player the slip is always handed over, because a "they have no tasks" refusal would be a free, repeatable probe
+     * for task-less roles (NONE mood) or a running Echo; only the user's own empty or held list keeps the slip.
+     * 任务单的纯判定。{@code locked}：目标的任务被敲钟人回响占用。对另一名玩家时任务单总会递出，因为“对方没有任务”的拒绝会成为
+     * 可免费反复使用的探测手段，用来识别没有任务的职业（无理智）或进行中的回响；只有使用者自己的任务为空或被占用时才保留任务单。
      */
     public static SlipVerdict slipVerdict(boolean roundActive, boolean aliveParticipant, boolean controlled,
-                                          int targetTasks, boolean locked) {
+                                          boolean self, int targetTasks, boolean locked) {
         if (!roundActive || !aliveParticipant || controlled) {
             return SlipVerdict.REFUSE;
         }
-        return targetTasks > 0 && !locked ? SlipVerdict.USE : SlipVerdict.NO_TASKS;
+        if (targetTasks > 0 && !locked) {
+            return SlipVerdict.USE;
+        }
+        return self ? SlipVerdict.NO_TASKS : SlipVerdict.HAND_OVER;
     }
 }

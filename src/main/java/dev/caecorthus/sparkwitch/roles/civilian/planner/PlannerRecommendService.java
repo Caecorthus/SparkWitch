@@ -70,7 +70,7 @@ public final class PlannerRecommendService {
                 state.skillCooldownRemaining(now) <= 0,
                 GrandWitchFearService.isPlayerFeared(planner),
                 PlannerRules.validTarget(self, target != null,
-                        target != null && PlannerTargeting.isTargetable(target),
+                        target != null && PlannerTargeting.isTargetable(planner, target),
                         target != null && PlannerTargeting.inReach(planner, target),
                         target != null && PlannerTargeting.inSight(planner, target)),
                 shop.getBalance() >= PlannerRules.SKILL_COST,
