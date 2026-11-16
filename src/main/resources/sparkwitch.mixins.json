@@ -24,6 +24,7 @@
     "savior.SaviorGunPickupMixin",
     "savior.PlayerInventorySaviorGunMixin",
     "savior.ScreenHandlerSaviorGunMixin",
+    "savior.SaviorPoliceGunMixin",
     "savior.NoellesAssassinSaviorGuessMixin",
     "savior.GameFunctionsSaviorObservationMixin",
     "JudgeKillCompletionMixin",

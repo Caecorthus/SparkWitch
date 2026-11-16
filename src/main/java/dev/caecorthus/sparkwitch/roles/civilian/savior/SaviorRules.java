@@ -25,6 +25,8 @@ import java.util.stream.IntStream;
  */
 public final class SaviorRules {
     public static final Identifier ROLE_ID = SparkWitch.id("savior");
+    /** Wathe's native Vigilante, the role its gun receiver asks about. / Wathe 原生义警，其枪械接收器询问的职业。 */
+    public static final Identifier VIGILANTE_ID = Identifier.of("wathe", "vigilante");
     /** Minecraft {@code §b} aqua, the role color requested by the owner. / 所有者指定的 {@code §b} 青色。 */
     public static final int ROLE_COLOR = 0x55FFFF;
     public static final Identifier PISTOL_ID = SparkWitch.id("savior_pistol");
@@ -92,6 +94,16 @@ public final class SaviorRules {
 
     public static boolean isSavior(@Nullable Role role) {
         return role != null && ROLE_ID.equals(role.identifier());
+    }
+
+    /**
+     * True only when Wathe's gun path asks about the native Vigilante and the shooter is a Savior, so the police gun
+     * exemptions (10 s revolver cooldown, no mood loss per gun kill) apply without changing any other role's answer.
+     * 仅当 Wathe 枪械路径询问原生义警且射手是救世主时为真，从而获得警用枪械豁免（左轮冷却 10 秒、枪杀不扣理智）而不改变
+     * 其他职业的结果。
+     */
+    public static boolean countsAsNativeVigilanteForGun(@Nullable Role queried, @Nullable Role actual) {
+        return queried != null && VIGILANTE_ID.equals(queried.identifier()) && isSavior(actual);
     }
 
     /**

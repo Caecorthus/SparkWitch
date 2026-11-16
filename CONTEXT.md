@@ -1892,7 +1892,9 @@ Current build baseline:
     hidden revolver out of rows 9–26. Only the punishment moves it; once in the hotbar it is an ordinary item, and
     `SaviorGunPickupRules.blocksInsert` lets it back into the inventory (cursor stack on screen close or disconnect)
     while the Savior carries no other revolver. Ground pickup of any gun stays refused. Wathe fires that revolver
-    under its passenger rule (15 s; the Savior has no police gun-parity wrapper).
+    under its native Vigilante rule (10 s, no −0.35 mood per gun kill) through `mixin/savior/SaviorPoliceGunMixin`
+    (`SaviorRules.countsAsNativeVigilanteForGun`; owner 2026-11-16: police roles keep 10 s, everyone else 15 s), an
+    additive OR-wrap like the other police wrappers.
   - Domain (G, `use_savior_skill`, `SaviorDomainService`): ACTIVE round, living, not spectating or swallowed, not
     SparkTraits skill-blocked, not Feared; 10 s around the Savior, 15 blocks: night vision and blindness removal for
     everyone inside, Slowness I for everyone but the Savior; 60 s opening and post-use cooldown in
