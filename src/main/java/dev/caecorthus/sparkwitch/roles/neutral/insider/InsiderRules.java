@@ -6,16 +6,16 @@ import net.minecraft.util.Identifier;
 /**
  * Frozen Insider contract: stable gameplay values shared by every work package, which read and never redefine them.
  * The Insider is a Team Jiahao member (SparkFactionAPI faction {@code sparkwitch:jiahao}, native Wathe constant
- * JIAHAO since 2026-11-04) that spawns only beside a Corrupt Cop and wins with it.
+ * JIAHAO since 2026-11-04) that SparkFactionAPI's third-faction draw deals beside a Corrupt Cop when Team Jiahao has a
+ * second slot (owner 2026-11-16; the old 4+ killers rule is gone), and that wins with it.
  * 冻结的内应契约：各工作包共用的稳定玩法数值，只读取、不重新定义。内应是嘉豪阵营成员（SparkFactionAPI 阵营
- * {@code sparkwitch:jiahao}，自 2026-11-04 起为原生 Wathe 常量 JIAHAO），只随黑警生成，并与黑警共同获胜。
+ * {@code sparkwitch:jiahao}，自 2026-11-04 起为原生 Wathe 常量 JIAHAO），嘉豪阵营有第二个名额时由 SparkFactionAPI 第三阵营
+ * 抽取与黑警一起发放（所有者 2026-11-16；旧的至少 4 名杀手规则已取消），并与黑警共同获胜。
  */
 public final class InsiderRules {
     public static final Identifier ROLE_ID = SparkWitch.id("insider");
     /** Mint, chosen to contrast with the Corrupt Cop's navy (D8). / 薄荷青，与黑警的深蓝形成反差（D8）。 */
     public static final int COLOR = 0x00FFD0;
-    /** Paired only when at least this many killer-team roles were assigned (D1, C1). / 杀手阵营人数至少为此值时才配对（D1、C1）。 */
-    public static final int MIN_KILLERS = 4;
 
     /**
      * NoellesRoles Corrupt Cop. A literal id on purpose: reading NoellesRoles' static fields would initialize its
