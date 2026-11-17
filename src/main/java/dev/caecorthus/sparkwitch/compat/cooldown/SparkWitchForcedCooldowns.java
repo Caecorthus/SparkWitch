@@ -27,6 +27,9 @@ import dev.caecorthus.sparkwitch.roles.civilian.sherry.SherryRules;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoWorldComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.orthopedist.OrthopedistRules;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorPlayerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
@@ -112,6 +115,8 @@ public final class SparkWitchForcedCooldowns {
     static final Identifier KOKO_STREAM_ID = KokoRules.STREAM_SKILL_ID;
     static final Identifier CRIMINAL_REASONER_REASONING_ID = CriminalReasonerRules.REASONING_SKILL_ID;
     static final Identifier PLANNER_RECOMMEND_ID = PlannerRules.RECOMMEND_SKILL_ID;
+    static final Identifier SPHINX_HAO_INFECT_ID = SphinxHaoRules.INFECT_SKILL_ID;
+    static final Identifier SPHINX_HAO_ROAR_ID = SphinxHaoRules.ROAR_SKILL_ID;
 
     private static final Set<Identifier> NOELLES_ASSASSIN_ROLES = Set.of(NOELLES_ASSASSIN_ROLE_ID);
 
@@ -215,7 +220,63 @@ public final class SparkWitchForcedCooldowns {
                 criminalReasonerReasoning(),
                 // 规划大师's recommendation (shared key G, PR #219), store 32, appended after 犯罪推理学家's 推理.
                 // 规划大师的推荐（共享 G 键，PR #219），第 32 个存储，追加在犯罪推理学家的推理之后。
-                plannerRecommend()
+                plannerRecommend(),
+                // 狮身豪 嘉豪病毒 (shared key G, 2026-11-17), store 33, appended after 规划大师's recommendation.
+                // 狮身豪嘉豪病毒（共享 G 键，2026-11-17），第 33 个存储，追加在规划大师的推荐之后。
+                sphinxHaoInfect(),
+                // 狮身豪 豪气冲天 (Role Skill 2, 2026-11-17), store 34, appended after its 嘉豪病毒.
+                // 狮身豪豪气冲天（职业技能 2，2026-11-17），第 34 个存储，追加在其嘉豪病毒之后。
+                sphinxHaoRoar()
+        );
+    }
+
+    /**
+     * 狮身豪's 嘉豪病毒 cooldown (2026-11-17), kept as an absolute ready tick in the owner-synced
+     * {@code sparkwitch:sphinx_hao_player} component. An ACTIVE round and the raw role (the
+     * {@code SphinxHaoSkillService.mayCast} role and round gates). Remaining time counts to the ready tick, so it
+     * includes the 60 s opening cooldown; the nominal is the 10 s after an infection. Writes only move the ready tick
+     * later through {@code setInfectReadyTick}. The skill has no item, so SparkFactionAPI's admin {@code clearCooldown}
+     * (held item only) does not reach it.
+     * 狮身豪嘉豪病毒的冷却（2026-11-17），以绝对就绪刻保存在只同步给本人的 {@code sparkwitch:sphinx_hao_player} 组件中。ACTIVE
+     * 回合且为真实职业（与 {@code SphinxHaoSkillService.mayCast} 的职业与回合门控一致）。剩余时间计到就绪刻，因此包含 60 秒开局
+     * 冷却；标准冷却为每次感染后的 10 秒。写入只经 {@code setInfectReadyTick} 把就绪刻推后。该技能没有物品，因此 SparkFactionAPI
+     * 的管理员 {@code clearCooldown}（只清手持物品）触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore sphinxHaoInfect() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                SPHINX_HAO_INFECT_ID,
+                whileActive((game, player) -> SphinxHaoRules.isSphinxHao(game.getRole(player))),
+                player -> SphinxHaoPlayerComponent.KEY.get(player)
+                        .infectCooldownRemaining(player.getServerWorld().getTime()),
+                () -> SphinxHaoRules.INFECT_COOLDOWN_TICKS,
+                player -> SphinxHaoPlayerComponent.KEY.get(player),
+                SphinxHaoPlayerComponent::infectReadyTick,
+                SphinxHaoPlayerComponent::setInfectReadyTick
+        );
+    }
+
+    /**
+     * 狮身豪's 豪气冲天 cooldown (2026-11-17), an absolute ready tick in the same component. An ACTIVE round, the raw role
+     * and no window of its own still open: the cooldown is re-set from the window's real end, so a running window is
+     * never forced (Dominator / Specter / Charon / 二阶堂希罗 precedent). Remaining time includes the 90 s opening
+     * cooldown; the nominal is the 30 s after a window ends. Writes only move the ready tick later through
+     * {@code setRoarReadyTick}. No item, so the admin {@code clearCooldown} does not reach it.
+     * 狮身豪豪气冲天的冷却（2026-11-17），以绝对就绪刻保存在同一组件中。ACTIVE 回合、真实职业，且自己的窗口未处于开启状态：冷却在
+     * 窗口实际结束时重新设定，因此进行中的窗口绝不强制（支配者、幽魂、卡戎、二阶堂希罗先例）。剩余时间包含 90 秒开局冷却；标准
+     * 冷却为窗口结束后的 30 秒。写入只经 {@code setRoarReadyTick} 把就绪刻推后。没有物品，因此管理员 {@code clearCooldown}
+     * 触及不到它。
+     */
+    static SimpleRoleSkillCooldownStore sphinxHaoRoar() {
+        return SimpleRoleSkillCooldownStore.raisedReadyTick(
+                SPHINX_HAO_ROAR_ID,
+                whileActive((game, player) -> SphinxHaoRules.isSphinxHao(game.getRole(player))
+                        && !player.getUuid().equals(SphinxHaoWorldComponent.KEY.get(player.getWorld()).roarCaster())),
+                player -> SphinxHaoPlayerComponent.KEY.get(player)
+                        .roarCooldownRemaining(player.getServerWorld().getTime()),
+                () -> SphinxHaoRules.ROAR_COOLDOWN_TICKS,
+                player -> SphinxHaoPlayerComponent.KEY.get(player),
+                SphinxHaoPlayerComponent::roarReadyTick,
+                SphinxHaoPlayerComponent::setRoarReadyTick
         );
     }
 

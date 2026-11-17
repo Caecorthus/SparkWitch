@@ -71,8 +71,17 @@ back beside the Charon as a Lost Soul (`sparkwitch:lost_soul`, 迷失的灵魂, 
 empty derringer (reloads on a kill), a crowbar and a knife. The moment blocks every faction win until no player outside
 it is alive, the Charon and the souls die together, and a round whose train clock runs out settles normally.
 It also adds the Insider, a Team Jiahao member dealt beside the NoellesRoles Corrupt Cop when Team Jiahao is the
-round's third faction and its member cap is at least 2; the two form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win
-together.
+round's third faction and its member cap is at least 2 (since 2026-11-17 that second seat is the Insider or 狮身豪,
+50/50); the Corrupt Cop and that partner form Team Jiahao (嘉豪阵营, `sparkwitch:jiahao`) and win together.
+It also adds 狮身豪 Sphinx Hao (`sparkwitch:sphinx_hao`, owner spec 2026-11-17), the other Team Jiahao partner: it
+wins, co-wins and blocks wins exactly as the Insider does, has fake tasks and no coins, and pays and earns only 豪度值
+(hao). It starts with a neutral master key and an empty "手"枪 (spring-fist hand gun); its shared ability key (G)
+infects the player in its crosshair within 3 blocks (嘉豪病毒: 60 s opening cooldown, 10 s after each infection; the
+victim privately reads 「你感觉自己有点豪」 15–25 s later), and its secondary key (N) opens 豪气冲天 (90 s opening
+cooldown, then 30 s from the window's end): for 10 s it and every living infected player crawl on land, hidden from
+every instinct, while 《Fade》 plays for every client; it earns 1 hao per infected crawler, and the window's end clears
+every infection. Its shop sells 拳头子弹 for 10 hao; a loaded gun fires one fist 25 blocks whose hit is an ordinary
+kill (a kill gives 3 s Glowing and 10 s Speed I; anything else +5 hao and 3 s Speed III).
 Since 2026-11-04 the witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are real Wathe
 `Faction` constants (WITCH, JIAHAO), declared in `fabric.mod.json` under
 `custom."sparkfactionapi:native_wathe_factions"` and appended by SparkFactionAPI `0.1.6.0`; they are no longer
@@ -142,7 +151,8 @@ Current build baseline:
 - SparkFactionAPI floor `2.0.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
   `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`, first shipped as `0.1.6.0`; the
   third-faction draw, `FactionCategory.THIRD_FACTION`, `registerThirdFactionLineup` and the third-faction settings,
-  in the 2.0.0 jar rebuilt on 2026-11-16). Every `0.1.5.13`+ feature (two-row limited inventory,
+  in the 2.0.0 jar rebuilt on 2026-11-16; re-pinned 2026-11-17 in `build.gradle` `compatibilityBaselines`, sha256
+  `21e662034bc4…`, with the two 狮身豪 payload-policy rows). Every `0.1.5.13`+ feature (two-row limited inventory,
   `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present, so SparkWitch no longer detects the
   inventory version and registers settlement exclusions directly.
 
@@ -319,7 +329,8 @@ Current build baseline:
   presentation (faction-count HUD, reading slip, reading log, selector ledger)
   lives in `client/tarot/`, `client/hud/Tarot*`, and `client/screen/`.
   - Five count buckets in HUD order (`TarotReaderRules.FactionBucket`): Civilian, Killer, Neutral, Witch
-    (`sparkwitch:witch`) and Jiahao (`sparkwitch:jiahao`: Insider and Corrupt Cop, owner D5 2026-11-04).
+    (`sparkwitch:witch`) and Jiahao (`sparkwitch:jiahao`: Insider and Corrupt Cop, owner D5 2026-11-04; 狮身豪 too
+    since 2026-11-17, by its faction id).
     `classifyFaction` buckets by SFA faction id first and falls back only to the built-in Wathe constants,
     compared by identity: never a `switch` over `Faction`, whose WITCH/JIAHAO constants SFA appends at runtime;
     any other constant has no bucket. `staticBucket` (selector grouping) still reads only the registered base faction.
@@ -604,7 +615,9 @@ Current build baseline:
     Hunter pistol (only when the copied player would die to it; `mixin/MagicianDemonHunterRefundMixin` pays the
     Jester refund), Death Ray (pierces), Wathe bat (`MagicianPuppetAttackHandlers`, full charge), Swordfish,
     Ceremonial Sword strike and dash, ninja shuriken, NoellesRoles throwing axe, Potion Gunner shell and backblast,
-    the SparkStrength M67 blast, and the USEC rifle (`onUsecRifleFired`, by path distance along the bullet).
+    the SparkStrength M67 blast, the USEC rifle (`onUsecRifleFired`, by path distance along the bullet), and the
+    狮身豪 "手"枪 (2026-11-17: read-only `sphinxHaoFistPuppetOnRay` on the block-clipped eye ray, box +0.2, then
+    `endSphinxHaoFistPuppet` with `sparkwitch:sphinx_hao_fist`; the shot counts as no kill for the shooter).
     Non-lethal tools still pass through puppets. The SparkStrength Serial Killer
     pistols end one through `SparkWitchApi.hitGunWorldTarget` (`onAddonGunShot`, revolver rules with the caller's range).
   - Presentation (D6): `client/magician/MagicianPuppetStandIn` answers every skin, name-label and instinct-glow
@@ -1316,6 +1329,12 @@ Current build baseline:
   task-money economy, shop, neutral master key doors, gun-punishment exemption, and Team Jiahao win seams. Its mixins live in `mixin/insider/`; client presentation
   (instinct outlines, the "嘉豪同伙" label, the Team Jiahao end title) lives in
   `client/insider/` and `client/mixin/insider/`, registered once by `InsiderClient.init()`.
+  - Partner generalisation (狮身豪, 2026-11-17): a SparkWitch partner is an Insider or a 狮身豪
+    (`InsiderParticipation.isPartnerRole`; `isTeamRole` = partner or Corrupt Cop, `isSphinxHaoRole` by exact id). The
+    lineup, the co-win rules (`JiahaoTeamWinRules.Kind` CORRUPT_COP < INSIDER < SPHINX_HAO, the tie order), the round-end
+    rows, the end title, the cohort label and the Team Jiahao instinct views take any partner; a round with Insiders
+    only behaves byte-for-byte as before. Insider-only features (kit, doors, shop, task money, `PoliceRoles`) keep
+    `isInsiderRole` / `isInsider`; 狮身豪's own live in `roles/neutral/sphinxhao/`.
 - `roles/neutral/stowaway/`: Stowaway (`sparkwitch:stowaway`) rules, the opening loadout (`StowawayLoadoutService`),
   the settlement exclusion and round-end row rule (`StowawaySettlement`, `StowawayWinScope`), and the kill reward
   (`StowawayKillRewardService`). Its mixins live in `mixin/stowaway/`; client presentation (senses, the Survival
@@ -1437,6 +1456,198 @@ Current build baseline:
   - Lang: `role`/`announcement` keys for `criminal_reasoner` and `sparkwitch.criminal_reasoner`,
     `screen.sparkwitch.criminal_reasoner.*`, `tip.sparkwitch.criminal_reasoner.*`, `hud.sparkwitch.criminal_reasoner.*`
     and the two `replay.skill.sparkwitch.criminal_reasoner.*` keys.
+- `roles/neutral/sphinxhao/`: 狮身豪 Sphinx Hao (`sparkwitch:sphinx_hao`, color `0xFF7F50`, the toy pistol's coral), a
+  Team Jiahao partner (owner spec and answers Q1–Q4 2026-11-17); every number and id lives in `SphinxHaoRules`. Server
+  services here, the 「“手”枪」 in `gun/`, the two empty C2S records in `net/`; mixins in `mixin/sphinxhao/`; client
+  presentation in `client/sphinxhao/`, `client/mixin/sphinxhao/` and `client/renderer/SphinxHaoFist*`; the visual
+  entity in `entity/SphinxHaoFistEntity`.
+  - Registration: a SparkFactionAPI role under `SparkWitchFactions.JIAHAO` with the Insider's profile (FAKE mood, so
+    fake tasks; 10 s `maxSprintTime`; `canSeeTime(true)`; no `nativeWatheFaction` bucket;
+    `appearanceCondition(context -> false)`), registered after 规划大师 and right before the Insider (which stays
+    last), and guessed in the neutral block right after the Insider, before the Stowaway. No Wathe pass draws it; only
+    the Team Jiahao lineup (see "Third-faction draw") or a force deals it. `SparkWitchRoles` exposes `SPHINX_HAO_ID`
+    and `sphinxHao()`. Not in SFA `PoliceRoles` (unlike the Insider: no police channel, never a meeting elector), not
+    in `isRegisteredSparkWitchRole`, never in the `gui.sparkwitch.skills` panel, not a Witch Trial girl.
+  - Hub: `SphinxHaoFeatureService` is the only Sphinx Hao feature line in `SparkWitchEvents` (after 规划大师's hub,
+    before USEC, which stays last); the payload types are additionally registered once earlier through the idempotent
+    `net/SphinxHaoPayloads.registerTypes()` right after `CriminalReasonerRuntime.register()` (the
+    `KokoRegistrationContractTest` sequence). The hub, in order: the types again, both server receivers, the kit, the
+    shop, the skills, the gun hub `gun/SphinxHaoGunFeatureService`, `RoleAssigned` (`assignForRole(now)`: 0 hao,
+    嘉豪病毒 ready at now + 60 s, 豪气冲天 at now + 90 s; everyone else `clear()`; the world view is re-synced only
+    while infections exist), `ResetPlayer` and `KillPlayer.AFTER`.
+  - Team Jiahao: an Insider-equivalent partner through `InsiderParticipation.isPartnerRole` (see the Insider rules
+    under Runtime Invariants): co-wins dead or alive, a living one blocks killer and passenger wins, a 狮身豪-led end
+    title still reads 「嘉豪胜利！」 over `game.win.sphinx_hao` (the team line), the 「嘉豪同伙」 cohort label, the Team
+    Jiahao instinct view (`InsiderHighlightRules.Viewer.SPHINX_HAO`) and killer-style instinct light. Its kill turns
+    Schrödinger's Cat into an Insider; it never becomes a Wraith (faction-based). Its kit's `ShouldPunishGunShooter`
+    listener cancels the innocent-shot punishment when it fires a Wathe gun it picked up (Insider parity; its own
+    hand gun never reaches that event).
+  - Kit and doors (`SphinxHaoKitService`, owner Q3): at `ON_FINISH_INITIALIZE`, on final roles, each living
+    狮身豪 without one gets one `noellesroles:neutral_master_key` and one EMPTY hand gun (looked up by
+    `Registries.ITEM.get(HAND_GUN_ID)`; its default stack is unloaded), `offerOrDrop`; never taken back on a role
+    change. A SparkWitch-owned `DoorInteraction` listener on both sides opens train doors and key-locked room doors
+    through `InsiderDoorRules.masterKeyDoorResult` with the 10 s key cooldown. 0 hao at the deal.
+  - Economy and shop (`SphinxHaoShopService`, pure `SphinxHaoShopRules`): `CanSeeMoney` DENY always (it earns and holds
+    no coins; Koko model). The shop is rebuilt on both sides from the exact synced role, `sparktraits:*` entries
+    preserved: one 0-coin `WEAPON` entry `sparkwitch:sphinx_hao_fist_ammo` (name `shop.sparkwitch.sphinx_hao_fist_ammo`,
+    one grey lore line `.description`), unlimited stock; its `onBuy` checks a living participant, then a free hotbar
+    slot, then 10 hao, spends and inserts (refund when the insert fails); a deny-only `ShopPurchase.BEFORE` explains a
+    refusal (`shop.error.sparkwitch.sphinx_hao.*`). `client/text/WitchShopClientTexts` labels the price
+    (`gui.sparkwitch.shop.hao_price`). Hao is paid only by 豪气冲天 and the gun's no-kill branch, always through
+    `SphinxHaoPlayerComponent.addHao`.
+  - Skill gate (`SphinxHaoSkillService.mayCast`, silent): an ACTIVE round, the raw role, playing and alive, not
+    spectating or creative, not swallowed, not held by a Ninja hook, not NoellesRoles-silenced, not SparkTraits
+    role-skill blocked.
+  - 嘉豪病毒 (shared ability key G, empty `sparkwitch:use_sphinx_hao_infect`), guard order in
+    `SphinxHaoSkillRules.infectOutcome`: cooling (action-bar line) → a 豪气冲天 window running in the world
+    (`ROAR_RUNNING`, coordinator 2026-11-17: refused with `message.sparkwitch.sphinx_hao.infect.during_roar` and no
+    cooldown, since the window's end would clear it) → the side-neutral `SphinxHaoTargeting.findInfectTarget` (nearest
+    player on the crosshair ray within 3 blocks, `canSee`, `SpecterRules.isMarkable`; a refused target is never swapped
+    for the one behind it) → already infected (line, no cooldown) → SFA `canAffectPlayer(…, sparkwitch:sphinx_hao_infect)`
+    (silent veto, no cooldown) → Grand Witch Fear → infect with a notice tick now + 300..500 → 10 s cooldown →
+    `recordSkillUse`.
+  - 豪气冲天 (secondary key N, empty `sparkwitch:use_sphinx_hao_roar`): cooling → one window per world (`BUSY`, a
+    forced second 狮身豪) → Fear → crawlers = the caster plus every infected player online in that world, playing and
+    alive, not spectating or creative (so no Rift Gate occupant) and not swallowed → +1 hao each (`roarHao`; the caster
+    never counts, owner Q4; 0 infected still casts) → `startRoar(endTick = now + 200)`, the roar ready tick set to
+    end + 600 → pending notices shown now → `recordSkillUse` with the count and hao.
+  - Window lifecycle (`END_WORLD_TICK`, `SphinxHaoSkillRules.roarEnd`): the round leaving ACTIVE or the caster going
+    offline, dying or losing the role ends it early (ready = now + 600); the full 200 ticks end it at its end tick
+    (ready = end + 600, the Hanna/Koko house rule). Every end releases every pose and clears ALL infections in the
+    world. Otherwise crawlers that went offline, died, became spectators (Rift Gate) or were swallowed are released.
+    `KillPlayer.AFTER` (only a victim on Wathe's dead list) and `ResetPlayer` drop the player's infection, release its
+    crawl and end its own window; a death re-syncs the world view so the new spectator reads the infected set. The
+    world state is cleared at `ON_FINISH_INITIALIZE` and `ON_FINISH_FINALIZE`.
+  - Notice: while ACTIVE, a due notice shows a living victim 「你感觉自己有点豪」 (`message.sparkwitch.sphinx_hao.notice`,
+    private action bar) once; an online non-living victim is marked silently, an offline one stays pending.
+  - Components (both appended last): `SphinxHaoPlayerComponent` (`sparkwitch:sphinx_hao_player`, `NEVER_COPY`, after
+    规划大师's in the CCA list): hao and two absolute ready ticks, owner-only sync counted down against the client
+    world clock, saved across a relog. `SphinxHaoWorldComponent` (`sparkwitch:sphinx_hao_world`, after the Charon's
+    Soul Moment): server truth victim → (infector, notice tick, noticed) in infection order, and the window (caster,
+    crawler set with the caster, absolute end tick). Its per-recipient `writeSyncPacket` sends the window to everyone
+    and the infected UUID set only to a 狮身豪 (raw role), a spectator or a creative player
+    (`mayKnowInfections`), else an empty set; the noticed flags never leave the server.
+  - Forced cooldowns: stores 33 `sparkwitch:sphinx_hao_infect` and 34 `sparkwitch:sphinx_hao_roar`.
+  - Deny lists: both C2S ids have rows in SparkFactionAPI's payload policy table (denied under the opening safe time,
+    the stun, a Seeker session, a Rift Gate, Fear and SparkStrength's Taotie daze; the Knight duel locks G but allows
+    N; allowed for silent Fear, the duel weapon, hypnosis, carry and Vendetta targeting).
+  - Gun items (`gun/`): `SphinxHaoHandGunItem` (`sparkwitch:sphinx_hao_hand_gun`, 「“手”枪」, `maxCount(1)`) and
+    `SphinxHaoFistAmmoItem` (`sparkwitch:sphinx_hao_fist_ammo`, 「拳头子弹」, stacks of 16), registered last in
+    `SparkWitchItems` (after 规划大师's task slip) and listed after the Koko lightstick in the creative tab. The loaded
+    flag is the stable data component `sparkwitch:sphinx_hao_loaded` (`SparkWitchDataComponents.SPHINX_HAO_LOADED`,
+    Boolean, persistent and synced, absent = empty, written only by the server's use);
+    `allowComponentsUpdateAnimation` is false. Outside `wathe:guns`: no Wathe gun packet, pickup, drop, mood cost or
+    innocent-shot punishment. On `MurderSenseAbility.DANGEROUS_ITEM_IDS`; item-cooldown nominal 20 ticks.
+  - Gun use (`SphinxHaoGunService`, vanilla `use()` like the Taser, so no C2S payload): the client predicts only the
+    role gate and kicks a loaded shot's local pitch up 3° after vanilla captured the aim. Server
+    (`SphinxHaoGunRules.decide`): REFUSED (not a playing, living, non-spectator 狮身豪, or held: Control Expert stun,
+    Seeker remote view, Kidnapper control, active Wraith; PASS, nothing spent); LOAD (empty with a fist in the
+    inventory: one consumed, none in creative, 20-tick cooldown, shooter-only crossbow-loading sound); DRY (empty, no
+    ammo: shooter-only dispenser click and `message.sparkwitch.sphinx_hao_hand_gun.no_ammo`); FIRE.
+  - Fire path: SparkTraits `blocksWeaponAction` first (a blocked shot costs nothing); then unload and the 20-tick
+    cooldown; the rewound eye ray `ControlExpertTaserTargeting.findTarget` (25 blocks, cut at the first collider block,
+    `PlayerHitboxHistory.hitVolumes` grown by `HIT_MARGIN` 0.2) over eligible players only (never the shooter,
+    `RoundParticipants.ROLE_HOLDER`, SFA `canAffectPlayer(…, sparkwitch:sphinx_hao_fist)`, not Last Escape, Vendetta
+    isolation; ineligible players are transparent). Targets (`resolve`, the Hunter shotgun's centre-ray order, reads
+    first, one write): a Raven Form crow strictly nearer than the player, every puppet and every breakable device
+    (`BlackRavenCrowHits.onSphinxHaoFistFired`) substitutes its owner as the victim; else a nearer Magician puppet ends
+    (NO_KILL); else the frozen Seeker seam `SeekerDeviceHits.onSphinxHaoFistFired(shooter, picked, 25.0)`, called
+    exactly once per shot (a nearer device breaks; SparkStrength's Partygoer and drone hook its HEAD; null = something
+    took the fist, NO_KILL), with `sphinxHaoFistAbsorber` read first for the visual's stop point. Then the public
+    piston-extend (pitch 1.6) and crossbow-shoot sounds at the eye, `RangedSmokeCarve.ray` (BEAR smoke), the fist
+    entity, the item-use replay record (before the kill), and ONE non-forced
+    `GameFunctions.killPlayer(victim, true, shooter, SparkWitchDeathReasons.SPHINX_HAO_FIST)`.
+  - Outcomes (`SphinxHaoGunRules.outcome` / `effects`, applied only while the shooter is still a living participant):
+    KILL only for a victim alive before, on Wathe's dead list after and not intercepted
+    (`SparkTraitsGunBridge.deathWasIntercepted`, Emma semantics, fails closed: an unreadable probe means NO_KILL) →
+    Glowing 60 ticks and Speed I 200 ticks; NO_KILL (miss, absorbed, shield, block, interception, Stands Firm) → +5
+    hao, Speed III 60 ticks and 「嘉豪击中了敌人身后的恶灵」 on the action bar. Effects show no particles.
+  - Death reason `sparkwitch:sphinx_hao_fist` (`SparkWitchDeathReasons.SPHINX_HAO_FIST` = `SphinxHaoRules.DEATH_REASON`;
+    SparkStrength reads the field by name): Prophet GUNSHOT, `BearRicochetRules.RANGED_REASONS`,
+    `KnightDuelInterference.HUMAN_LETHAL_REASONS`, `FiendRules.classify` GUN (owner D5: every gun), SparkStrength
+    Bodyguard PHYSICAL; deliberately not in the Specter's `NON_ATTACK_REASONS`. `SeekerBreakSource.SPHINX_HAO_FIST`
+    (RAY) is appended last. Lang `death_reason.sparkwitch.sphinx_hao_fist`, `replay.death.sparkwitch.sphinx_hao_fist.*`.
+  - Gun lifecycle (`SphinxHaoGunInventory`, by class; BEAR/USEC model): the gun and its ammo never become item entities
+    (a refused cursor return is handed back to a living holder), obey the strict `BoundItemRules` slot policy, never
+    go into an item frame, armor stand or allay (`UseEntityCallback` FAIL on both sides) or a decorated pot, and skip
+    Wathe's death drops. `KillPlayer.AFTER` deletes every copy any victim holds unless
+    `WitchFactorTraitsBridge.isDeathIntercepted`; a live-round disconnect strips before the save. Guard mixins:
+    `GameFunctionsSphinxHaoGunDropMixin` (`shouldDropOnDeath` HEAD), `PlayerEntitySphinxHaoGunMixin` (`dropItem`),
+    `ServerPlayerEntitySphinxHaoGunDropMixin` (Q), `ScreenHandlerSphinxHaoGunMixin` (strict clicks),
+    `DecoratedPotBlockSphinxHaoGunMixin`. Replay `SphinxHaoGunReplay`
+    (`replay.item_use.sparkwitch.sphinx_hao_hand_gun.hit` / `.miss`).
+  - Fist visual: `entity/SphinxHaoFistEntity` (`sparkwitch:sphinx_hao_fist`, registered last in `SparkWitchEntities`,
+    not saved, not summonable): a plain `Entity` like the grappling hook, never a projectile, never hit, pushed or
+    moved; spawned at the shooter's eye with the shot's end as a tracked `VECTOR3F` offset and the shooter id in the
+    spawn packet. `SphinxHaoFistMotion` (pure, both sides): full reach from age 0 (no travel; owner 2026-11-17), hold 4,
+    back 5 (linear); the server plays the hit thump (attack knockback + strong) on the first tick when a player, crow
+    or puppet was struck,
+    the piston-contract (1.6) at `RETRACT_AGE`, and discards it at `END_AGE` or when the shooter is gone. Client
+    `client/sphinxhao/SphinxHaoGunClient` (from `SparkWitchClient#registerEntityRenderers`): the model predicate
+    `sparkwitch:sphinx_hao_loaded` (0 → `sphinx_hao_hand_gun_empty`, so a fired gun shows no second fist), the
+    standalone `models/item/projectile/sphinx_hao_fist.json`, and `client/renderer/SphinxHaoFistEntityRenderer` (the
+    fist via `ProjectileModels` at the held scale 0.5; a scissor lattice of textured boxes from the gun atlas swatches,
+    cell count fixed per shot; geometry and the 1st/3rd-person muzzle anchor in the pure `SphinxHaoLatticeGeometry`,
+    the first-person anchor reading the world FOV through `ScopeGameRendererInvoker`). Client mixins
+    `SphinxHaoGunArmPoseMixin` (Wathe straight-arm hold, Savior copy) and `SphinxHaoGunEquipMixin` (no re-equip swing
+    on use), appended at the end of `sparkwitch.client.mixins.json`.
+  - Forced crawl (陆泳): `SphinxHaoCrawlPose` and the common `mixin/sphinxhao/PlayerEntitySphinxHaoCrawlMixin` (listed
+    right after `koko.KokoSprintDrainMixin`): `PlayerEntity#updatePose` HEAD sets SWIMMING and cancels while
+    `SphinxHaoWorldComponent.isCrawling(uuid, world time)`, on the server and the crawler's own client (observers see
+    the server-synced pose: vanilla `OtherClientPlayerEntity#updatePose` is an empty override), so pose and hitbox
+    agree with no packet; vanilla crawling slows input to sneak speed so no sprint starts, a running
+    sprint is cleared at `tickMovement` HEAD and `jump` HEAD is cancelled. Riders, sleepers and spectators keep
+    vanilla's pose; release is immediate on the local clock. A Pig keeps pig dimensions.
+  - Crawler instinct veto (`client/sphinxhao/SphinxHaoInstinctVeto`, `client/mixin/sphinxhao/SphinxHaoInstinctVetoMixin`,
+    Tono Hanna pattern): `@WrapMethod` on `WatheClient#getInstinctHighlight` at priority 2900 returns -1 for a crawler
+    without `original.call()`, except for the crawler's own client, a living raw-role 狮身豪 viewer (coordinator
+    2026-11-17) and spectator-information viewers (spectator or creative and not a living participant); fails closed
+    off a confirmed server. Pinned in `watheClientMixinContracts` after Hanna's entry and listed after
+    `hanna.HannaPresenceFootstepsVolumeMixin`.
+  - Infected outline (`client/sphinxhao/SphinxHaoInstinctHooks`, pure `SphinxHaoInstinctRules`): a living, unswallowed
+    raw-role 狮身豪 holding the instinct key sees every player in the synced infected set in Team Jiahao gold
+    `0xFFC125`, `withKeybind` at priority 90 (Koko's level: above the Insider view 65 and the tablet suspect mark 80,
+    below the Seeker mark 95 and `skip()`), only while `WatheClient.isInstinctEnabled()`; Koko's target gates
+    (SparkTraits `isInstinctHidden` through its own `OptionalStaticMethod`, fail closed). Spectators receive the set but
+    never outline it.
+  - 《Fade》: `SparkWitchSounds.SPHINX_HAO_FADE` (`sparkwitch:music.sphinx_hao_fade`, after the Mini Wither events),
+    `sounds.json` stream `sparkwitch:music/sphinx_hao_fade` (10 s), subtitle `subtitles.sparkwitch.music.sphinx_hao_fade`.
+    `client/sphinxhao/SphinxHaoFadeBgm` + pure `SphinxHaoFadeBgmRules`: every client (alive, dead or spectating, owner
+    Q2) on a confirmed server with a running round plays it once per window, keyed by the synced end tick (a resync
+    never restarts it), relative, `AttenuationType.NONE`, AMBIENT (Wathe locks MUSIC), full volume from the first
+    tick, a 10-tick fade-out (`FADE_OUT_TICKS`) once its window is gone; JOIN and DISCONNECT forget the played window.
+  - HUD and keys (`client/sphinxhao/`): `SphinxHaoHud` + pure `SphinxHaoHudRules`, one confirmed-server
+    `HudRenderCallback`: four bottom-right rows, bottom to top 嘉豪病毒, 豪气冲天 (陆泳中 / cooldown / ready), the
+    infected count (gold) and 豪度值 (coral), in the Koko/Fiend corner layout; not in `SaintHudLayoutRules` (Koko
+    precedent). G is a branch right after the Athlete's in `SparkWitchClient`'s ability chain
+    (`SphinxHaoClient.onAbilityKey`); N is `SecondaryAbilityRegistry.register` in `SphinxHaoClient.init()` (right after
+    `KokoClient.init()`). `SphinxHaoKeyRules` trims presses (not a living, unswallowed raw-role 狮身豪: nothing;
+    cooling, crawling, or G during a running 豪气冲天 window (the server refuses infecting then; the HUD row reads
+    「嘉豪病毒：豪气冲天期间不可用」): a local action-bar hint; else send if `canSend`); nothing is predicted.
+  - Replay: `replay.skill.sparkwitch.sphinx_hao.infect` (actor, target) and `.roar` (actor, count), plus the gun's
+    item-use and death keys.
+  - Lang: `role`/`announcement` (title, goal, goals, win) keys for `sphinx_hao` and `sparkwitch.sphinx_hao`,
+    `game.win.sphinx_hao`, `tip.letter.sphinx_hao.tooltip1`-`7`, `message.sparkwitch.sphinx_hao.*`,
+    `message.sparkwitch.sphinx_hao_hand_gun.*`, `shop.sparkwitch.sphinx_hao_fist_ammo[.description]`,
+    `shop.error.sparkwitch.sphinx_hao.*`, `gui.sparkwitch.shop.hao_price`, the seven `hud.sparkwitch.sphinx_hao.*`,
+    the subtitle, item and entity names and tooltips, and the replay keys.
+  - Cross-mod seams: SparkStrength (id-only) adds `CorruptCopRules.SPHINX_HAO_ID` / `isSparkWitchJiahaoMember` (Insider
+    or 狮身豪) to the Arrogant ASF concealment pairing, the blackout sabotage team x-ray and the Partygoer role instinct
+    key; `BodyguardProtectionRules` maps the fist to PHYSICAL (vest + 5-point shield); `DroneSparkWitchHitsMixin`
+    injects at `SeekerDeviceHits.onSphinxHaoFistFired` HEAD by name (`require = 0`: a nearer Partygoer dies through
+    `PartygoerWeaponHits.onSparkWitchSphinxHaoFist`, else a nearer drone breaks; then null); its key rule opens train
+    doors for any neutral-aligned role and its free round-start tablet reaches only the public channel. SparkTraits:
+    see the Insider paragraph under its optional seams. SparkAssist: guide page
+    `guidebook/roles/sparkwitch/sphinx_hao.json` (after the Insider), plate, emblem, the Jiahao faction page and nav,
+    and the `EventSoundGroup.SPHINX_HAO_FADE` volume row (Team Jiahao section, AMBIENT sample, shown only when the
+    sound id is registered).
+  - Tests (local): `roles/neutral/sphinxhao/SphinxHaoSkillRulesTest`, `SphinxHaoCrawlPoseTest`,
+    `SphinxHaoRegistrationContractTest`, `gun/SphinxHaoGunRulesTest`, `gun/SphinxHaoFistMotionTest`,
+    `gun/SphinxHaoGunContractTest`, `client/sphinxhao/SphinxHaoInstinctTest`, `SphinxHaoHudRulesTest`,
+    `SphinxHaoFadeBgmTest`, `client/renderer/SphinxHaoLatticeGeometryTest`. `SphinxHaoWorldComponent` cannot be
+    constructed in unit tests (its static CCA key needs a bootstrap), so window reads are pinned in source.
+  - Open: no mood flag sprite (`MoodFlags.ROLE_FLAGS` has no entry, so Wathe's flag shows); nothing of it (crawl pose,
+    veto, 《Fade》, HUD, the gun's `display`, arm pose and lattice) has been seen in a real client yet.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
   - Other-witch roles (owner 2026-11-13): `OtherWitchRoles` is the one list of roles the Grand Witch's instinct
     specially recognises, by role id: the Apprentice Witch, the Murderous Witch and the Witch Trial girls (魔裁,
@@ -1827,7 +2038,7 @@ Current build baseline:
     kills a duelist with a reason in `KnightDuelInterference#HUMAN_LETHAL_REASONS` is force-killed with
     `sparkwitch:duel_interference` (破坏决斗规则). That set is Wathe weapon damage (knife, gun, bat, grenade, poison,
     generic), every player-caused SparkWitch reason (ceremonial blade, mighty force, death ray, ninja knife/shuriken,
-    bell toll, time stolen, swordfish, potion shell/backblast, fiend devoured, crimson skull), the
+    bell toll, time stolen, swordfish, potion shell/backblast, fiend devoured, crimson skull, 狮身豪 fist), the
     SparkStrength kills (`tomahawk`, `partygoer_eaten`, `partygoer_kicked`), and the NoellesRoles attacks reachable in
     this pack (`bomb`, `throwing_axe`, `demon_hunter_shot`, `assassinated`). Self
     penalties, duel-rule deaths and environment reasons stay out; ordinary non-lethal hits never trigger it, and the
@@ -2319,7 +2530,8 @@ Current build baseline:
     the origin is not the killer's eye: TR (blast centre), shuriken and crimson skull (position − velocity), the
     Magician puppet kill (puppet eye), the Wathe grenade (`GrenadeEntityOriginSmokeCarveMixin`, `@WrapMethod
     onCollision`) and the NR throwing axe (`ThrowingAxeRangedOriginMixin`); the revolver family, shotgun, USEC,
-    Death Ray, Demon Hunter and backblast (not in `BLAST_REASONS`) use the killer's eye, which is their muzzle. Effects: a glass hit (visor down + front, D4) writes a crack on the worn stack
+    Death Ray, Demon Hunter, the 狮身豪 fist (`sparkwitch:sphinx_hao_fist`, in `RANGED_REASONS` since 2026-11-17) and
+    backblast (not in `BLAST_REASONS`) use the killer's eye, which is their muzzle. Effects: a glass hit (visor down + front, D4) writes a crack on the worn stack
     (`RysTVisorCracks`, delegating to WP2's `RysTVisorGeometry.nearestGlassPoint` + `RysTHelmetItem.addCrack`); the public `bear.rys_t.ricochet` or
     `bear.rys_t.visor_hit` at the helmet (volume 1.5 ≈ 24 blocks) with crit sparks (+ glass shards); S2C
     `sparkwitch:bear_rys_t_ricochet` (`RysTRicochetS2CPayload`: unit direction toward the origin or zero, glass flag)
@@ -3221,7 +3433,7 @@ Current build baseline:
   planner completes, `PlannerRules.OWN_TASK_COINS_FOR_EVERY_TASK`; Q2 self-recommendation with nothing aimed at, with
   the normal reward, `SELF_RECOMMEND_ALLOWED`); every number lives in `PlannerRules`.
   - Registration: a SparkFactionAPI civilian (Wathe-native CIVILIAN, REAL mood, 10 s `maxSprintTime`, no round clock,
-    no appearance condition) registered after the Criminal Reasoner (PR #228) and right before the Insider (which
+    no appearance condition) registered after the Criminal Reasoner (PR #228) and before 狮身豪 and the Insider (which
     stays last), and guessed in the civilian block right after 橘雪莉. Drawn by Wathe's civilian pass with Wathe's 0 starting coins, never a
     police variant or slot; no witch skill (not in `isRegisteredSparkWitchRole`), never in the `gui.sparkwitch.skills`
     panel; in neither Black Raven disguise list (Accountant/Hanna precedent: never claimable). `SparkWitchRoles`
@@ -3271,8 +3483,8 @@ Current build baseline:
     Anxiety makes it about 1.8) and publishes `ceil(timer / rate / 20)` seconds (`setNextTaskSeconds`, owner sync on
     change). It publishes -1 ("unknown") when no deal can happen (all four types held, or a Bell Ringer Echo holding
     generation: `canDealNextTask`) and for everyone else. Not detected: SparkTraits Minimalism's task cap.
-  - State: `PlannerComponent` (`sparkwitch:planner_master_player`, `NEVER_COPY`, owner-only sync, appended last in the
-    CCA list after the Criminal Reasoner's): the planner's ready tick (saved, so a mid-round relog keeps the cooldown) and next-task
+  - State: `PlannerComponent` (`sparkwitch:planner_master_player`, `NEVER_COPY`, owner-only sync, appended in the
+    CCA list after the Criminal Reasoner's; only 狮身豪's `sparkwitch:sphinx_hao_player` follows): the planner's ready tick (saved, so a mid-round relog keeps the cooldown) and next-task
     seconds (never saved), and on any player the recommended type and its end tick (at most one per player, saved). The server also keeps a transient reference to the
     exact Wathe task object it inserted (never saved or synced; a relog falls back to the type), and every reader
     (reward, lifecycle, drop, drain) goes through `isRecommendedTask` / `holdsRecommendation`, so a same-type
@@ -3281,7 +3493,8 @@ Current build baseline:
   - Coins and shop: `CanSeeMoney` ALLOW for a living planner, DENY otherwise (Hanna precedent); one `TOOL` row, the
     task slip for 50 (unlimited, Charisma discount).
   - Task slip (`PlannerTaskSlipItem` / `PlannerTaskSlipService`, `sparkwitch:planner_task_slip`, 任务单, `maxCount(1)`,
-    registered last in `SparkWitchItems`, listed after 橘雪莉's items; own 16x16 texture): any holder in an ACTIVE round,
+    registered in `SparkWitchItems` after 橘雪莉's items, followed only by 狮身豪's gun and ammo, listed after 橘雪莉's
+    items; own 16x16 texture): any holder in an ACTIVE round,
     alive, present, not swallowed or stunned. Right-click rerolls the tasks of the targetable player under the
     crosshair within 32 blocks (server ray stopped by the first block; players hidden from the user, invisible or a
     Morphling corpse, are transparent like on the client; BEAR smoke hides nobody), or the user's own: the same count
@@ -3606,9 +3819,9 @@ neutral slot; only the third-faction draw below deals them). It then appends Tea
 SparkFactionAPI's built-in `wathe:neutral`, no win condition (Jiahao wins stay on NoellesRoles' Corrupt Cop branch),
 `neutralAligned(true)` and, since 2026-11-16, `dealtInWatheNeutralPool(false)` (owner overturned D6: Wathe's neutral pass
 no longer deals the Corrupt Cop; only the third-faction draw does, and SparkFactionAPI refuses a third-faction lineup on
-a faction still dealt in the neutral pool). The Insider registers under it and the Corrupt Cop is bound to it (see the
-Insider rules).
-At runtime witch roles read `Faction.WITCH`, the Insider and the Corrupt Cop `Faction.JIAHAO`, and `isNeutral()` is
+a faction still dealt in the neutral pool). The Insider and (since 2026-11-17) 狮身豪 register under it and the Corrupt
+Cop is bound to it (see the Insider rules).
+At runtime witch roles read `Faction.WITCH`, the Insider, 狮身豪 and the Corrupt Cop `Faction.JIAHAO`, and `isNeutral()` is
 false for all of them, so Wathe's rotation history counts them as civilian rounds (D4); wins stay
 `WinStatus.NEUTRAL`; the Murderous Witch, Fiend, Stowaway and Schrödinger's Cat stay Wathe neutrals and the Apprentice
 Witch stays civilian. SparkWitch gameplay compares SparkFactionAPI faction ids or exact role ids, never
@@ -3636,9 +3849,12 @@ faction dealt):
   Bewitched is enabled; with a forced Grand Witch, Bewitched only. Her appearance condition is always false and is not
   consulted: the draw's own minimum replaced `minPlayers(18)`.
 - Team Jiahao (`roles/neutral/insider/JiahaoThirdFactionLineup`, rules in `JiahaoThirdFactionLineupRules`): the Corrupt
-  Cop, found by exact id in `WatheRoles.ROLES` (empty without NoellesRoles or when it is disabled), plus one Insider
-  when a second slot is free and the Insider is enabled; a forced member gets the missing partner; never more than two
-  members (`MAX_MEMBERS`), and no killer-count condition.
+  Cop, found by exact id in `WatheRoles.ROLES` (empty without NoellesRoles or when it is disabled), plus one partner
+  when a second slot is free: the Insider or 狮身豪, 50/50 (owner Q1 2026-11-17; the coin is the draw world's
+  `getRandom()::nextBoolean`, flipped at most once and only when a partner seat is dealt with both enabled, so the
+  draw sequence is otherwise unchanged; with only one of them enabled, that one); a forced member gets the missing
+  seat, and a present Insider or 狮身豪 counts as the partner, so a round never gets both from the draw; never more
+  than two members (`MAX_MEMBERS`), and no killer-count condition.
 Admins set the minimum with `/sparkwitch:thirdFactionMinRequirement <players>` (`command/ThirdFactionSettingsCommand`,
 permission `sparkwitch.command.thirdfactionminrequirement`, op level 2, `0` = no minimum; it writes
 `SparkFactionApi.setThirdFactionMinPlayers` and applies next round, like the Wraith settings) and the dividend with
@@ -3713,7 +3929,7 @@ the Raven on top of the host's own alive test:
 
 Stowaway rules (owner spec 2026-11-02, PR #178). Profile: Wathe-native neutral, FAKE mood with tasks (tasks pay
 nothing), infinite stamina (`maxSprintTime(-1)`), no round clock, no appearance condition; registered right before
-the Insider and guessed right after it, before the promotion tail.
+the Insider and guessed right after it and 狮身豪 (which follows the Insider since 2026-11-17), before the promotion tail.
 - Loadout: a SparkWitch `ON_FINISH_INITIALIZE` phase after the default one strips every room key and role letter
   (crafting grid included) and grants one lockpick.
 - Settlement: the Stowaway never counts as alive for any win, block or moment. Every `CheckWinCondition` listener
@@ -3760,8 +3976,9 @@ Stowaway, before the promotion tail.
   killer's side is none. Cancelling there skips the death mark, kill reward, corpse, drops and `KillPlayer.AFTER`, like
   Tofana; the takeover still resets the poison (Wathe's next step) and ends a Knight duel the cat is in
   (`KnightDuelService.endForTakenOverDeath`).
-- Side (`SchrodingersCatRules.sideOf`): Corrupt Cop or Insider → Insider; any `WitchFactionRules.isWitchFactionMember`
-  killer (Grand Witch, every accomplice incl. the Bewitched and special accomplices, Curser) → Bewitched; otherwise the
+- Side (`SchrodingersCatRules.sideOf`): Corrupt Cop, Insider or 狮身豪 (`InsiderParticipation.isTeamRole`) → Insider;
+  any `WitchFactionRules.isWitchFactionMember` killer (Grand Witch, every accomplice incl. the Bewitched and special
+  accomplices, Curser) → Bewitched; otherwise the
   killer's SparkFactionAPI EFFECTIVE faction: KILLER → `wathe:killer` (an Impostor civilian counts), CIVILIAN → a random
   unheld police variant through `PoliceSlotAssignmentService.choose` (plain Vigilante only once every variant is held;
   an Emma whose one claim per round is taken is skipped, and a role a guard still refuses falls back to the Vigilante;
@@ -4102,7 +4319,10 @@ sources in `SeekerBreakSource` so earlier replay ids keep their values; a server
 blast, and the launcher backblast lane), and the USEC rifle (`USEC_RIFLE`, appended after `POTION_SHELL`: the server
 bullet path through `SeekerDeviceHits.onUsecRifleFired`, called after the Magician puppet entry
 `MagicianPuppetHits.onUsecRifleFired`; nearest wins by path distance, and an AP round reaches a device behind the
-blocks it pierced). A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol)
+blocks it pierced), and the 狮身豪 "手"枪 fist (`SPHINX_HAO_FIST`, appended last after the Witch Maiden's
+`CRIMSON_SKULL`, 2026-11-17: the server's rewound eye ray through the frozen `SeekerDeviceHits.onSphinxHaoFistFired`,
+called once per shot after the crow and puppet steps; SparkStrength hooks its HEAD by name for the Partygoer and the
+Bomber drone). A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol)
 is accepted when the shooter's look ray meets the device box grown by its client targeting margin with
 a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
 (`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. The SparkStrength Serial Killer pistols
@@ -4214,7 +4434,9 @@ feign-death `sparkwitch:fiend_devoured` (below):
 (priority 1100, so SparkFactionAPI's affect veto runs first and the Charon's pardon guard at 1200 runs after it) that
 ignores `force`, so the owner-approved piercing
 kills (bell toll, time curse, portal crush) do not reach it either. Only a kill that guard cancelled pays a hit reaction, once
-per attack: `wathe:gun_shot` (every gun) gives the Fiend +50 gold and Speed III 5 s (deferred to the revival while it
+per attack: `wathe:gun_shot` (every gun; `FiendRules.classify` also counts the Demon Hunter and Savior pistols and,
+since 2026-11-17, the 狮身豪 fist `sparkwitch:sphinx_hao_fist` as GUN) gives the Fiend +50 gold and Speed III 5 s
+(deferred to the revival while it
 feigns), and puts a 20 s item-cooldown
 floor on every other participant within 8 blocks, queued at the hit and applied at END_SERVER_TICK through
 SparkFactionAPI `ForcedCooldowns.raiseAll(player, CooldownKind.ITEM, …)` (exact, never shortened; role-skill counters
@@ -4331,31 +4553,37 @@ through that answer. The shop is rebuilt on both sides, gated on the exact role 
 clear, revolver 150 and crowbar 50, each stock 1, then restore. The tablet is not sold: the Insider is in SFA
 `PoliceRoles`, so SparkStrength issues it a free tablet at round start on the police channel. That also makes it a
 SparkStrength police elector for meetings and votes (`TabletChannelResolver.isPoliceElector`).
-Team Jiahao (every Corrupt Cop and every Insider, by current role) applies only in a round that has an Insider
-(any role-map entry with the Insider role, online or not, dead or alive); without one, all three wraps below
+Team Jiahao (every Corrupt Cop, every Insider and, since 2026-11-17, every 狮身豪, by current role) applies only in a
+round that has a SparkWitch partner, an Insider or a 狮身豪 (`InsiderParticipation.isPartnerRole`: any role-map entry
+with a partner role, online or not, dead or alive); without one, all three wraps below
 return NoellesRoles' own value, so several forced Corrupt Cops behave exactly as in NoellesRoles (same single
 winner); only the end title changed (owner D7, 2026-11-04, overturning that part of C13): a lone Corrupt Cop win also
-reads "嘉豪胜利！", over NoellesRoles' own Corrupt Cop subtitle. With an Insider it wins inside NoellesRoles' Corrupt Cop win branch, so NoellesRoles' win order stays Vulture > Survival Master > Pathogen > Jester > Taotie > Team Jiahao >
+reads "嘉豪胜利！", over NoellesRoles' own Corrupt Cop subtitle. With a partner it wins inside NoellesRoles' Corrupt Cop win branch, so NoellesRoles' win order stays Vulture > Survival Master > Pathogen > Jester > Taotie > Team Jiahao >
 Shadow Jester. `mixin/insider/NoellesRolesJiahaoTeamWinMixin` wraps three calls in `lambda$registerEvents$14`
 (pinned NoellesRoles `b58fa5f`, ordinals fixed by `JiahaoTeamWinContractTest`): `getAllWithRole` ordinal 6 so the
 living-cop lookup sees the whole team and any living member blocks killer and passenger wins;
 `isPlayerPlayingAndAlive` ordinal 9 so the living team counts once; and the single-argument `neutralWin`
-ordinal 5 so every online member co-wins, dead or alive, with the first living Insider, else the first online Insider, as primary (a `WinResult` can only name online
-players).
+ordinal 5 so every online member co-wins, dead or alive, with the first living partner, else the first online partner, as primary (a `WinResult` can only name online
+players; an Insider before a 狮身豪 on ties, the `JiahaoTeamWinRules.Kind` order CORRUPT_COP < INSIDER < SPHINX_HAO).
 Decisions live in `JiahaoTeamWinRules`, world reads in `JiahaoTeamWinSeam`; the Corrupt Cop Moment count stays
 NoellesRoles' own. Wathe titles a neutral win by the first winning round-end row in role-map order, so
 `mixin/insider/GameRoundEndComponentJiahaoTitleMixin`, just before the explicit-winner sync, handles a Team
-Jiahao win (a winning team row in a round with an Insider): it marks every other team row as a winner, offline
-`LEFT` / `LEFT_DEAD` rows included, then moves an Insider row first (the one the win named, else any). The end
+Jiahao win (a winning team row in a round with a partner): it marks every other team row as a winner, offline
+`LEFT` / `LEFT_DEAD` rows included, then moves a row of the lead partner's kind first (`JiahaoTeamWinRules.leadPartner`:
+the primary's kind; with every partner offline, an Insider if the round has one, else 狮身豪; the row the win named,
+else any; the other partner kind only when none exists), so a round with Insiders only still leads with an Insider
+row. The end
 screen reads "嘉豪胜利！" over "整列列车的人都被嘉豪们豪完了", and Wathe's `didWin` and `GameRecordManager.endMatch`
 read the same rows. Every other win keeps Wathe's rows. Team Jiahao has its own faction color,
 `InsiderRules.TEAM_JIAHAO_COLOR` (tuhao gold `0xFFC125`), apart from the Insider's mint and the Corrupt Cop's navy:
 `client/mixin/insider/RoundTextRendererJiahaoTitleMixin` (`@ModifyExpressionValue` on the neutral title's
 `RoleAnnouncementTexts.getForRole(Identifier)` lookup in `RoundTextRenderer.renderHud`) swaps the role text of a
-title led by an Insider row or by a Corrupt Cop row (`JiahaoWinTitleClient.isTeamJiahaoTitle`, D7) for an
+title led by any Team Jiahao row, Insider, 狮身豪 or Corrupt Cop (`JiahaoWinTitleClient.isTeamJiahaoTitle`, D7, by
+`JiahaoTeamWinRules.Kind.of`), for an
 unregistered twin built with the Insider id in that gold, so the title key stays `announcement.win.insider` and the
 Insider's own role announcement stays mint; Wathe reads the subtitle from the leading row's own id
-(`game.win.insider`, or NoellesRoles' `game.win.corrupt_cop` for a lone Corrupt Cop win). SparkFactionAPI's
+(`game.win.insider`, `game.win.sphinx_hao` (the same team line), or NoellesRoles' `game.win.corrupt_cop` for a lone
+Corrupt Cop win). SparkFactionAPI's
 `@Redirect` on the `winText` read that follows still wins for a custom faction win.
 Insider presentation is client-only. One `GetInstinctHighlight` listener answers `always` only while its condition
 holds. At priority 65 (below SparkStrength's tablet suspect mark at 80, which keeps its color; SparkStrength no
@@ -4363,12 +4591,17 @@ longer outlines police-network members), a living Insider holding instinct sees 
 `0x00FFD0`; the Corrupt Cop is answered at 93 in `0x193264`, so the partner stays navy even under a tablet suspect
 mark. At priority 93 (above SparkStrength's Corrupt Cop x-ray at 90, below the Seeker mark 95, `skip()` 100 and
 suppression 102), a living Corrupt Cop sees the living, visible Insider in `0x00FFD0` while holding instinct or
-during its Moment vision window. Targets hidden by SparkTraits' `isInstinctHidden` get no Insider answer.
+during its Moment vision window. A living 狮身豪 gets the Insider's own view (`InsiderHighlightRules.Viewer.SPHINX_HAO`,
+2026-11-17): the Corrupt Cop navy at 93, a partner in its own colour, everyone else in its coral `0xFF7F50` at 65; the
+Corrupt Cop sees a 狮身豪 like the Insider but in coral. Wherever the mint stands for a partner, a 狮身豪 is coral, so
+rounds without one answer as before. Targets hidden by SparkTraits' `isInstinctHidden` get no Insider answer.
 Killers, SparkTraits Impostors included, get no Insider answer and no cohort line (owner 2026-10-05, replacing the
 D3 Impostor disguise): Wathe's default paints the Insider green like any passenger, with no "杀手同伙".
-`InsiderCohortRoleNameMixin` draws the `game.tip.sparkwitch.jiahao_cohort` label in the Team Jiahao gold between an
-Insider and any Team Jiahao member, both ways, with the witch cohort trigger. The Insider shares killer-style
-instinct light through `WitchInstinctClientHooks`. The Insider never renders in the `gui.sparkwitch.skills` panel.
+`InsiderCohortRoleNameMixin` draws the `game.tip.sparkwitch.jiahao_cohort` label in the Team Jiahao gold between a
+partner (Insider or 狮身豪) and any Team Jiahao member, both ways, with the witch cohort trigger (`InsiderCohortRules`;
+Corrupt Cop to Corrupt Cop still draws none). Every partner shares killer-style instinct light through
+`WitchInstinctClientHooks` (`usesKillerStyleInstinctLight`). Neither partner renders in the `gui.sparkwitch.skills`
+panel.
 
 Blind state never enters that shared schema either. `sparkwitch:blind` (`NEVER_COPY`, never saved)
 holds the cane and Attune windows as absolute server world ticks plus a server-only match id and the
@@ -4951,11 +5184,22 @@ deliberate and kept:
    absolute ready tick in `PlannerComponent`, so it includes the 45 s opening cooldown; the nominal is
    `PlannerRules.COOLDOWN_TICKS` (1400). Every write only moves the ready tick later through the syncing
    `setSkillReadyTick`.
+33. `sparkwitch:sphinx_hao_infect` (`SparkWitchForcedCooldowns#sphinxHaoInfect`, 2026-11-17, appended after 规划大师's
+   recommendation): 狮身豪's 嘉豪病毒, for the raw role in an ACTIVE round. Remaining time counts to the absolute ready
+   tick in `SphinxHaoPlayerComponent`, so it includes the 60 s opening cooldown; the nominal is
+   `SphinxHaoRules.INFECT_COOLDOWN_TICKS` (200). Every write only moves the ready tick later through the owner-syncing
+   `setInfectReadyTick`. No item, so the admin `clearCooldown` does not reach it.
+34. `sparkwitch:sphinx_hao_roar` (`SparkWitchForcedCooldowns#sphinxHaoRoar`, 2026-11-17, appended after its 嘉豪病毒):
+   狮身豪's 豪气冲天, for the raw role in an ACTIVE round and never while its own window is open (the window's real end
+   re-sets the cooldown; Dominator / Specter / Charon / 二阶堂希罗 precedent). Remaining time includes the 90 s opening
+   cooldown; the nominal is `SphinxHaoRules.ROAR_COOLDOWN_TICKS` (600). Every write only moves the ready tick later
+   through `setRoarReadyTick`.
 `SparkWitchItemCooldownNominals` supplies the full post-use cooldown of every SparkWitch item that writes one (Taser,
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
 written when a hook cycle ends), Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun,
-USEC rifle (the 2 s bolt), and the 1 s anti-repeat writes of the potion launcher and the Rift Gate, which no current
+USEC rifle (the 2 s bolt), the 狮身豪 hand gun (1 s after a shot or a load, the longer of the two), and the 1 s
+anti-repeat writes of the potion launcher and the Rift Gate, which no current
 consumer reaches) and of NoellesRoles items with a public constant (Antidote, Repair Tool, Poison Needle) plus the
 200-tick neutral master key; round-start cooldowns are not nominals, and Wathe items fall through to Wathe's own
 table. The local `SparkWitchItemCooldownNominalsTest` scans every main source file for item cooldown writes (direct,
@@ -5666,7 +5910,16 @@ an absent, older or failing build means nothing hidden. SparkTraits
 `feat/insider-support` hard-codes `sparkwitch:insider` in `GoingDarkRules.PROTECTED_VIEWER_ROLE_IDS` (Going Dark
 Veterans hidden from the Insider) and `isBlockingTeamWinNeutral` (a living Insider defers SparkTraits'
 KILLERS/PASSENGERS verdicts like the Corrupt Cop); an older SparkTraits leaves the Veteran visible and may end
-the round for killers or passengers while a lone Insider lives.
+the round for killers or passengers while a lone Insider lives. Since 2026-11-17 SparkTraits lists
+`sparkwitch:sphinx_hao` in both too (a Going Dark Veteran is hidden from a 狮身豪's instinct in blackouts; a living
+狮身豪 defers those verdicts), and the Going Dark description names it.
+狮身豪 may query only `isInstinctHidden` (its infected outline, through its own `OptionalStaticMethod` like Koko's),
+`isRoleSkillBlocked` (both skills), `blocksWeaponAction` and `isLastEscapeActive` (the fist shot and its targets)
+through `SparkTraitsKillerBridge`, `deathWasIntercepted` through `SparkTraitsGunBridge` (fails closed: the shot is
+then no kill), `isDeathIntercepted` through `WitchFactorTraitsBridge` (the kit strip) and
+`SparkTraitsShopEntryPreserver`. Trait effects that need no seam: Final Moment's +1000 coins stay hidden and
+unspendable (`CanSeeMoney` DENY), money traits never roll for it, Fast Hands shortens the gun's 20-tick cooldown to
+18, and Stands Firm cancels a fist kill between Team Jiahao members, which then pays the no-kill branch.
 The Blind may query only `isRoleSkillBlocked` (Attune), `setExactItemCooldownRemaining` (the cane)
 and `isLastStandDeathIntercepted` (the kit strip) through `SparkTraitsKillerBridge`, beyond
 `SparkTraitsShopEntryPreserver` (its shop rebuild keeps the `sparktraits:*` entries). An absent,
@@ -6090,6 +6343,10 @@ Seeker car.
       (no shotgun innocent rule).
     - USEC AXMC: crow step first in `UsecRifleFireService.resolveMatchHit` (bullet polyline, volumes +0.1), then the
       puppet/device steps with the crow's distance; `wathe:gun`; `UsecFirePunishment.killAndPunish` (USEC 小脑).
+    - 狮身豪 "手"枪 (2026-11-17): crow step first in `SphinxHaoGunService.resolve` through
+      `BlackRavenCrowHits.onSphinxHaoFistFired` (the shotgun query on the block-clipped eye ray, volumes +0.2 vs the
+      picked player, puppets and devices); the owner is the victim of the single fist kill, so the shooter's outcome is
+      that owner's real death; `sparkwitch:sphinx_hao_fist`; none.
     - Feather Blade: crow step before the Seeker seam in `FeatherBladeItem#use`; marks the OWNER, because the mark is
       player state (`BlackRavenMarkPlayerComponent`) that settles 20 s later through `BlackRavenMarkRuntime` (the kill
       and the marker's 小脑 on an innocent) and must outlive the at most 30 s crow.

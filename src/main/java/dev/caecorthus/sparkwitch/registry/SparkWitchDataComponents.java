@@ -54,6 +54,17 @@ public final class SparkWitchDataComponents {
                     .codec(RysTVisor.CODEC)
                     .packetCodec(RysTVisor.PACKET_CODEC));
 
+    /**
+     * Stable contract: the Sphinx Hao "手"枪 holds one fist ({@code true}); absent or {@code false} is empty. Persistent
+     * and synced, so the client model override and tooltip read it; only the server's gun use writes it.
+     * 稳定契约：狮身豪“手”枪装有一发拳头（{@code true}）；缺省或 {@code false} 为空膛。持久化并同步，客户端模型覆盖与提示文本
+     * 读取它；只有服务端的手枪使用会写入它。
+     */
+    public static final ComponentType<Boolean> SPHINX_HAO_LOADED = register("sphinx_hao_loaded",
+            ComponentType.<Boolean>builder()
+                    .codec(Codec.BOOL)
+                    .packetCodec(PacketCodecs.BOOL));
+
     private SparkWitchDataComponents() {
     }
 

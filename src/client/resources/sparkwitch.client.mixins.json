@@ -225,6 +225,7 @@
     "input.SelectedSlotFlushInvoker",
     "hanna.HannaInstinctVetoMixin",
     "hanna.HannaPresenceFootstepsVolumeMixin",
+    "sphinxhao.SphinxHaoInstinctVetoMixin",
     "noa.NoaMoodRendererMixin",
     "dominator.DominatorForcedShotInventoryMixin",
     "accountant.AccountantAirSwingMixin",
@@ -255,7 +256,9 @@
     "bear.HeadsetInventoryScreenMixin",
     "bear.HeadsetCreativeScreenMixin",
     "specter.SpecterOtherworldGameRendererMixin",
-    "specter.ClientWorldOtherworldSkyMixin"
+    "specter.ClientWorldOtherworldSkyMixin",
+    "sphinxhao.SphinxHaoGunArmPoseMixin",
+    "sphinxhao.SphinxHaoGunEquipMixin"
   ],
   "injectors": {
     "defaultRequire": 1

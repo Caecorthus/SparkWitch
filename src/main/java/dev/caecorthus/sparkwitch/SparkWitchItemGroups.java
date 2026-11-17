@@ -54,6 +54,9 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.firePoker(),
                                     // 泽渡可可's lightstick (neutral) / 泽渡可可的应援棒（中立）
                                     SparkWitchItems.kokoLightstick(),
+                                    // 狮身豪's hand gun and fist ammo (Team Jiahao) / 狮身豪的手枪与拳头子弹（嘉豪阵营）
+                                    SparkWitchItems.sphinxHaoHandGun(),
+                                    SparkWitchItems.sphinxHaoFistAmmo(),
                                     // Civilian / 平民
                                     SparkWitchItems.perfumeEssence(),
                                     SparkWitchItems.cologne(),
