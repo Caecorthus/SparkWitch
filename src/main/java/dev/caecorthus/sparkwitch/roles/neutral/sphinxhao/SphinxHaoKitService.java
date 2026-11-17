@@ -5,6 +5,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.doctor4t.wathe.api.Role;
 import dev.doctor4t.wathe.api.event.DoorInteraction;
 import dev.doctor4t.wathe.api.event.GameEvents;
+import dev.doctor4t.wathe.api.event.ShouldPunishGunShooter;
 import dev.doctor4t.wathe.cca.GameWorldComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -18,7 +19,8 @@ import org.agmas.noellesroles.ModItems;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Sphinx Hao's starting kit (owner Q3) and the doors its key opens, both on the Insider / 泽渡可可 model:
+ * Sphinx Hao's starting kit (owner Q3), the doors its key opens and its gun-punishment exemption, on the Insider /
+ * 泽渡可可 model:
  * <ul>
  *   <li>In {@code ON_FINISH_INITIALIZE}, on final roles after every {@code RoleAssigned} listener, each living Sphinx
  *   Hao gets one NoellesRoles neutral master key and one EMPTY "手"枪 when it does not already hold one; a full
@@ -59,6 +61,11 @@ public final class SphinxHaoKitService {
             }
         });
         DoorInteraction.EVENT.register(SphinxHaoKitService::doorInteraction);
+        // Team Jiahao parity with the Insider (D5): a Sphinx Hao firing a Wathe gun it picked up is never punished for
+        // an innocent victim. Its own hand gun is not a Wathe gun and never reaches this event.
+        // 与内应保持嘉豪阵营一致（D5）：狮身豪用捡到的 Wathe 枪械击中无辜者时不受惩罚。它自己的手枪不是 Wathe 枪械，从不触发此事件。
+        ShouldPunishGunShooter.EVENT.register((shooter, victim) -> SphinxHaoParticipation.isSphinxHao(shooter)
+                ? ShouldPunishGunShooter.PunishResult.cancel() : null);
     }
 
     private static void grantKit(ServerPlayerEntity player, GameWorldComponent game) {

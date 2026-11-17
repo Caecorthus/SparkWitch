@@ -2221,6 +2221,7 @@
   "message.sparkwitch.sphinx_hao.infect.no_target": "No one to infect within 3 blocks of your crosshair",
   "message.sparkwitch.sphinx_hao.infect.already": "They already carry the Hao Virus",
   "message.sparkwitch.sphinx_hao.infect.cooldown": "Hao Virus ready in %s s",
+  "message.sparkwitch.sphinx_hao.infect.during_roar": "Hao to the Sky is running: infections would be cleared when it ends",
   "message.sparkwitch.sphinx_hao.notice": "You feel a little Hao",
   "message.sparkwitch.sphinx_hao.roar.start": "Hao to the Sky! %s infected go Land-swimming with you, +%s Hao",
   "message.sparkwitch.sphinx_hao.roar.cooldown": "Hao to the Sky ready in %s s",

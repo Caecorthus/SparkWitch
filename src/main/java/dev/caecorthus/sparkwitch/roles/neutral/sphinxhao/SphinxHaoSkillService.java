@@ -118,14 +118,17 @@ public final class SphinxHaoSkillService {
         SphinxHaoPlayerComponent state = SphinxHaoPlayerComponent.KEY.get(caster);
         SphinxHaoWorldComponent infections = SphinxHaoWorldComponent.KEY.get(world);
         int cooling = state.infectCooldownRemaining(now);
-        ServerPlayerEntity target = cooling > 0 ? null
+        boolean roarRunning = infections.isRoarActive(now);
+        ServerPlayerEntity target = cooling > 0 || roarRunning ? null
                 : SphinxHaoTargeting.findInfectTarget(caster) instanceof ServerPlayerEntity found ? found : null;
         boolean already = target != null && infections.isInfected(target.getUuid());
         boolean allows = target != null && !already && SparkFactionApi.canAffectPlayer(caster, target,
                 SphinxHaoRules.INFECT_SKILL_ID, GameWorldComponent.KEY.get(world));
-        switch (SphinxHaoSkillRules.infectOutcome(cooling, target != null, already, allows)) {
+        switch (SphinxHaoSkillRules.infectOutcome(cooling, roarRunning, target != null, already, allows)) {
             case COOLING -> feedback(caster, Text.translatable(SphinxHaoSkillRules.INFECT_COOLDOWN_KEY,
                     SphinxHaoSkillRules.secondsCeil(cooling)), Formatting.GRAY);
+            case ROAR_RUNNING -> feedback(caster, Text.translatable(SphinxHaoSkillRules.INFECT_DURING_ROAR_KEY),
+                    Formatting.GRAY);
             case NO_TARGET -> feedback(caster, Text.translatable(SphinxHaoSkillRules.INFECT_NO_TARGET_KEY),
                     Formatting.GRAY);
             case ALREADY_INFECTED -> feedback(caster, Text.translatable(SphinxHaoSkillRules.INFECT_ALREADY_KEY),

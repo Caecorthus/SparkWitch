@@ -14,6 +14,7 @@ public final class SphinxHaoSkillRules {
     public static final String INFECT_NO_TARGET_KEY = "message.sparkwitch.sphinx_hao.infect.no_target";
     public static final String INFECT_ALREADY_KEY = "message.sparkwitch.sphinx_hao.infect.already";
     public static final String INFECT_COOLDOWN_KEY = "message.sparkwitch.sphinx_hao.infect.cooldown";
+    public static final String INFECT_DURING_ROAR_KEY = "message.sparkwitch.sphinx_hao.infect.during_roar";
     /** The victim's private actionbar line 「你感觉自己有点豪」. / 被感染者的私人动作栏文字「你感觉自己有点豪」。 */
     public static final String NOTICE_KEY = "message.sparkwitch.sphinx_hao.notice";
     public static final String ROAR_START_KEY = "message.sparkwitch.sphinx_hao.roar.start";
@@ -27,6 +28,12 @@ public final class SphinxHaoSkillRules {
     public enum InfectOutcome {
         /** Still cooling: say how long, change nothing. / 仍在冷却：提示剩余时间，不改变任何东西。 */
         COOLING,
+        /**
+         * A 豪气冲天 window runs: it clears every infection when it ends, so a new one would be wasted; refused with a
+         * message, no cooldown (coordinator call, 2026-11-17).
+         * 豪气冲天窗口进行中：窗口结束时会清除全部感染，新感染会白白浪费；拒绝并提示，不进冷却（协调者决定，2026-11-17）。
+         */
+        ROAR_RUNNING,
         /** No eligible player in the crosshair within range. / 准星范围内没有合格玩家。 */
         NO_TARGET,
         /** The crosshair player is already infected: refused, no cooldown. / 准星玩家已被感染：拒绝，不进冷却。 */
@@ -38,14 +45,17 @@ public final class SphinxHaoSkillRules {
     }
 
     /**
-     * Guard order after {@code mayCast}: cooldown, target, already infected, SparkFactionAPI veto. The Fear re-check
+     * Guard order after {@code mayCast}: cooldown, a running 豪气冲天 window, target, already infected, SparkFactionAPI veto. The Fear re-check
      * runs after this (it tells the caster why on its own).
-     * {@code mayCast} 之后的守卫顺序：冷却、目标、是否已感染、SparkFactionAPI 否决。之后再检查恐惧（恐惧会自行提示原因）。
+     * {@code mayCast} 之后的守卫顺序：冷却、进行中的豪气冲天窗口、目标、是否已感染、SparkFactionAPI 否决。之后再检查恐惧（恐惧会自行提示原因）。
      */
-    public static InfectOutcome infectOutcome(int cooldownRemaining, boolean targetFound, boolean alreadyInfected,
-                                              boolean policyAllows) {
+    public static InfectOutcome infectOutcome(int cooldownRemaining, boolean roarRunning, boolean targetFound,
+                                              boolean alreadyInfected, boolean policyAllows) {
         if (cooldownRemaining > 0) {
             return InfectOutcome.COOLING;
+        }
+        if (roarRunning) {
+            return InfectOutcome.ROAR_RUNNING;
         }
         if (!targetFound) {
             return InfectOutcome.NO_TARGET;

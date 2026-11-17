@@ -2221,6 +2221,7 @@
   "message.sparkwitch.sphinx_hao.infect.no_target": "准星3格内没有可感染的玩家",
   "message.sparkwitch.sphinx_hao.infect.already": "对方已经感染了嘉豪病毒",
   "message.sparkwitch.sphinx_hao.infect.cooldown": "嘉豪病毒将在 %s 秒后可用",
+  "message.sparkwitch.sphinx_hao.infect.during_roar": "豪气冲天进行中：此时感染会在结束时被清除",
   "message.sparkwitch.sphinx_hao.notice": "你感觉自己有点豪",
   "message.sparkwitch.sphinx_hao.roar.start": "豪气冲天！%s 名感染者陪你陆泳，豪度值 +%s",
   "message.sparkwitch.sphinx_hao.roar.cooldown": "豪气冲天将在 %s 秒后可用",
