@@ -90,11 +90,13 @@ public final class SphinxHaoRules {
     public static final int KILL_GLOW_TICKS = 3 * 20;
     public static final int KILL_SPEED_AMPLIFIER = 0;
     public static final int KILL_SPEED_TICKS = 10 * 20;
-    /** Spring-fist animation: out, hold, back. / 弹簧拳头动画：伸出、停留、收回。 */
-    public static final int FIST_EXTEND_TICKS = 3;
-    public static final int FIST_HOLD_TICKS = 2;
+    /**
+     * Spring-fist animation: at full reach the instant it appears (owner 2026-11-17), held, then pulled back.
+     * 弹簧拳头动画：出现的一瞬间即伸到最远（所有者 2026-11-17），停留后收回。
+     */
+    public static final int FIST_HOLD_TICKS = 4;
     public static final int FIST_RETRACT_TICKS = 5;
-    public static final int FIST_LIFETIME_TICKS = FIST_EXTEND_TICKS + FIST_HOLD_TICKS + FIST_RETRACT_TICKS;
+    public static final int FIST_LIFETIME_TICKS = FIST_HOLD_TICKS + FIST_RETRACT_TICKS;
 
     private SphinxHaoRules() {
     }

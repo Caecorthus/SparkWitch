@@ -1579,8 +1579,9 @@ Current build baseline:
   - Fist visual: `entity/SphinxHaoFistEntity` (`sparkwitch:sphinx_hao_fist`, registered last in `SparkWitchEntities`,
     not saved, not summonable): a plain `Entity` like the grappling hook, never a projectile, never hit, pushed or
     moved; spawned at the shooter's eye with the shot's end as a tracked `VECTOR3F` offset and the shooter id in the
-    spawn packet. `SphinxHaoFistMotion` (pure, both sides): out 3 ticks (ease-out), hold 2, back 5 (linear); the
-    server plays the hit thump (attack knockback + strong) at `ARRIVE_AGE` when a player, crow or puppet was struck,
+    spawn packet. `SphinxHaoFistMotion` (pure, both sides): full reach from age 0 (no travel; owner 2026-11-17), hold 4,
+    back 5 (linear); the server plays the hit thump (attack knockback + strong) on the first tick when a player, crow
+    or puppet was struck,
     the piston-contract (1.6) at `RETRACT_AGE`, and discards it at `END_AGE` or when the shooter is gone. Client
     `client/sphinxhao/SphinxHaoGunClient` (from `SparkWitchClient#registerEntityRenderers`): the model predicate
     `sparkwitch:sphinx_hao_loaded` (0 → `sphinx_hao_hand_gun_empty`, so a fired gun shows no second fist), the

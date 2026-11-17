@@ -50,7 +50,10 @@ public final class SphinxHaoFistEntity extends Entity {
 
     private @Nullable UUID ownerUuid;
     private int ownerEntityId;
-    /** Server only: the fist met a player, so its arrival thumps. / 仅服务端：拳头打中了玩家，到达时发出击打声。 */
+    /**
+     * Server only: the fist met a player, so it thumps on its first tick (it is out at once), then this is cleared.
+     * 仅服务端：拳头打中了玩家，因此在第一刻发出击打声（拳头瞬间伸出），随后清除。
+     */
     private boolean hitPlayer;
 
     public SphinxHaoFistEntity(EntityType<? extends SphinxHaoFistEntity> type, World world) {
@@ -59,8 +62,8 @@ public final class SphinxHaoFistEntity extends Entity {
     }
 
     /**
-     * Server: a fist from {@code owner}'s eyes to {@code end}. {@code hitPlayer} only chooses the arrival sound.
-     * 服务端：从 {@code owner} 眼睛到 {@code end} 的拳头。{@code hitPlayer} 只决定到达时的音效。
+     * Server: a fist from {@code owner}'s eyes to {@code end}. {@code hitPlayer} only chooses the impact sound.
+     * 服务端：从 {@code owner} 眼睛到 {@code end} 的拳头。{@code hitPlayer} 只决定击打音效。
      */
     public SphinxHaoFistEntity(World world, PlayerEntity owner, Vec3d end, boolean hitPlayer) {
         this(SparkWitchEntities.sphinxHaoFist(), world);
@@ -113,7 +116,8 @@ public final class SphinxHaoFistEntity extends Entity {
             discard();
             return;
         }
-        if (age == SphinxHaoFistMotion.ARRIVE_AGE && hitPlayer) {
+        if (hitPlayer) {
+            hitPlayer = false;
             Vec3d target = getTarget();
             getWorld().playSound(null, target.x, target.y, target.z, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK,
                     SoundCategory.PLAYERS, HIT_VOLUME, 1.0F);
