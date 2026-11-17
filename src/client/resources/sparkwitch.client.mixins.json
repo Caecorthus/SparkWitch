@@ -256,7 +256,9 @@
     "bear.HeadsetInventoryScreenMixin",
     "bear.HeadsetCreativeScreenMixin",
     "specter.SpecterOtherworldGameRendererMixin",
-    "specter.ClientWorldOtherworldSkyMixin"
+    "specter.ClientWorldOtherworldSkyMixin",
+    "sphinxhao.SphinxHaoGunArmPoseMixin",
+    "sphinxhao.SphinxHaoGunEquipMixin"
   ],
   "injectors": {
     "defaultRequire": 1

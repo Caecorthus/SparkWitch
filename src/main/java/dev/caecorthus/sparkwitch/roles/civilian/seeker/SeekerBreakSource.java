@@ -56,7 +56,13 @@ public enum SeekerBreakSource {
      * auto-fired skulls break nothing. Appended last so every earlier replay id keeps its value.
      * 巫女赤色凋灵之首：与手里剑一样在 tick 开头扫掠的快速投射物；无害的自动射击头颅不打坏任何东西。追加在最后，既有回放 id 不变。
      */
-    CRIMSON_SKULL(Kind.PROJECTILE);
+    CRIMSON_SKULL(Kind.PROJECTILE),
+    /**
+     * Sphinx Hao "手"枪 fist: a server hitscan through vanilla's use-item packet, like the Taser. Appended last so every
+     * earlier replay id keeps its value.
+     * 狮身豪“手”枪的拳头：经原版使用物品数据包的服务端即时射线，与电击枪相同。追加在最后，既有回放 id 不变。
+     */
+    SPHINX_HAO_FIST(Kind.RAY);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {

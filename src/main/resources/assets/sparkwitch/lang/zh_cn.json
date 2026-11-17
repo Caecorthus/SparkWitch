@@ -2233,5 +2233,19 @@
   "shop.error.sparkwitch.sphinx_hao.not_enough_hao": "豪度值不足。",
   "gui.sparkwitch.shop.hao_price": "%s 豪度值",
   "replay.skill.sparkwitch.sphinx_hao.infect": "%s 让 %s 感染了嘉豪病毒",
-  "replay.skill.sparkwitch.sphinx_hao.roar": "%s 豪气冲天，带着 %s 名感染者陆泳"
+  "replay.skill.sparkwitch.sphinx_hao.roar": "%s 豪气冲天，带着 %s 名感染者陆泳",
+  "item.sparkwitch.sphinx_hao_hand_gun": "“手”枪",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.loaded": "已装填一发拳头",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.empty": "空膛：右键装填一发拳头子弹",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.usage": "右键发射拳头，射程 25 格 · 仅狮身豪可用",
+  "item.sparkwitch.sphinx_hao_fist_ammo": "拳头子弹",
+  "item.sparkwitch.sphinx_hao_fist_ammo.tooltip": "这是嘉豪手枪的子弹，但这子弹为什么是个拳头？！",
+  "entity.sparkwitch.sphinx_hao_fist": "弹簧拳头",
+  "message.sparkwitch.sphinx_hao_hand_gun.no_ammo": "没有拳头子弹了",
+  "message.sparkwitch.sphinx_hao_hand_gun.miss": "嘉豪击中了敌人身后的恶灵",
+  "death_reason.sparkwitch.sphinx_hao_fist": "被嘉豪的铁拳砸死了",
+  "replay.death.sparkwitch.sphinx_hao_fist.killed": "%s 被 %s 的§6铁拳§r砸死了",
+  "replay.death.sparkwitch.sphinx_hao_fist.died": "%s 被§6铁拳§r砸死了",
+  "replay.item_use.sparkwitch.sphinx_hao_hand_gun.hit": "%s 用§6“手”枪§r一拳打中了 %s",
+  "replay.item_use.sparkwitch.sphinx_hao_hand_gun.miss": "%s 开了一次§6“手”枪§r但没有打中人"
 }

@@ -516,6 +516,9 @@ public final class SparkWitchClient implements ClientModInitializer {
         EntityRendererRegistry.register(SparkWitchEntities.magicianPlayback(), MagicianPlaybackEntityRenderer::new);
         // Raven Form world content: Homing Feather marker and black feather particle. / 化鸦世界内容：归羽标记与黑羽粒子。
         BlackRavenCrowWorldClient.register();
+        // 狮身豪's "手"枪: loaded-model predicate, fist model and the spring-fist renderer (lattice + fist).
+        // 狮身豪的“手”枪：装填模型谓词、拳头模型与弹簧拳头渲染器（剪刀架 + 拳头）。
+        dev.caecorthus.sparkwitch.client.sphinxhao.SphinxHaoGunClient.register();
     }
 
     private static void registerWraithRoleAnnouncementNetworking() {

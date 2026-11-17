@@ -50,11 +50,16 @@ public final class BearRicochetRules {
      * （{@link AttackSource}），因此共用一次掷骰（H2），一次弹开对每次重试都有效。
      */
     public static final Identifier SAVIOR_PISTOL_KILL = Identifier.of("sparkwitch", "savior_pistol_kill");
+    /**
+     * Sphinx Hao "手"枪 (2026-11-17): a hitscan fist from the shooter's eyes, so the Rys-T may deflect it like a shot.
+     * 狮身豪“手”枪（2026-11-17）：从射手眼睛射出的即时射线拳头，因此 Rys-T 可像弹开枪击一样弹开它。
+     */
+    public static final Identifier SPHINX_HAO_FIST = Identifier.of("sparkwitch", "sphinx_hao_fist");
 
     /** Every death reason the Rys-T may deflect (D2). / Rys-T 可能弹开的所有死因（D2）。 */
     public static final Set<Identifier> RANGED_REASONS = Set.of(GUN_SHOT, GRENADE, DEMON_HUNTER_SHOT, THROWING_AXE,
             BOMB, PIERCED_BY_RAY, NINJA_SHURIKEN_KILL, CRIMSON_WITHER_SKULL, POTION_SHELL, POTION_BACKBLAST,
-            SAVIOR_PISTOL_KILL);
+            SAVIOR_PISTOL_KILL, SPHINX_HAO_FIST);
     /**
      * Blasts centred away from the killer: without an explicit origin scope their origin is unknown, never the killer's
      * eye. The potion backblast counts as an explosion for the ranged set (owner H1) but is NOT listed: it leaves the
