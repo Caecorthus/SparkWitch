@@ -7,7 +7,8 @@ import dev.caecorthus.sparkwitch.util.TickTime;
 /**
  * Pure presentation rules of the Sphinx Hao's four owner-only rows in the bottom-right corner, bottom to top:
  * <ol>
- *   <li>嘉豪病毒 (ability key): "ready: press G" or "cooling down N s";</li>
+ *   <li>嘉豪病毒 (ability key): "unavailable during 豪气冲天" while any window runs (the server refuses an infection
+ *   then: {@code SphinxHaoSkillRules.InfectOutcome.ROAR_RUNNING}), else "cooling down N s", else "ready: press G";</li>
  *   <li>豪气冲天 (secondary key): "陆泳中 N s" while it crawls in a window, else "cooling down N s", else
  *   "ready: press N";</li>
  *   <li>the infected count (the synced infected set, which only a Sphinx Hao, a spectator or a creative player gets);</li>
@@ -21,7 +22,8 @@ import dev.caecorthus.sparkwitch.util.TickTime;
  * panel. No Minecraft client types, so it is unit-testable.
  * 狮身豪右下角四行仅本人可见内容的纯展示规则，自下而上：
  * <ol>
- *   <li>嘉豪病毒（技能键）：“就绪：按 G”或“冷却 N 秒”；</li>
+ *   <li>嘉豪病毒（技能键）：任何窗口进行中时为“豪气冲天期间不可用”（此时服务端拒绝感染：
+ *   {@code SphinxHaoSkillRules.InfectOutcome.ROAR_RUNNING}），否则“冷却 N 秒”，否则“就绪：按 G”；</li>
  *   <li>豪气冲天（第二技能键）：窗口中自己陆泳时为“陆泳中 N 秒”，否则“冷却 N 秒”，否则“就绪：按 N”；</li>
  *   <li>感染人数（同步的感染集合，只有狮身豪、旁观者与创造模式玩家会收到）；</li>
  *   <li>豪度值。</li>
@@ -34,6 +36,7 @@ import dev.caecorthus.sparkwitch.util.TickTime;
 public final class SphinxHaoHudRules {
     public static final String INFECT_READY_KEY = "hud.sparkwitch.sphinx_hao.infect.ready";
     public static final String INFECT_COOLDOWN_KEY = "hud.sparkwitch.sphinx_hao.infect.cooldown";
+    public static final String INFECT_DURING_ROAR_KEY = "hud.sparkwitch.sphinx_hao.infect.during_roar";
     public static final String ROAR_READY_KEY = "hud.sparkwitch.sphinx_hao.roar.ready";
     public static final String ROAR_COOLDOWN_KEY = "hud.sparkwitch.sphinx_hao.roar.cooldown";
     public static final String ROAR_ACTIVE_KEY = "hud.sparkwitch.sphinx_hao.roar.active";
@@ -66,7 +69,9 @@ public final class SphinxHaoHudRules {
         /** A count of players. / 玩家人数。 */
         COUNT,
         /** Its hao. / 豪度值。 */
-        HAO
+        HAO,
+        /** No argument. / 无参数。 */
+        NONE
     }
 
     /** A row's translation key, argument kind, number (unused for key hints) and colour. / 一行的翻译键、参数类别、数值与颜色。 */
@@ -93,8 +98,16 @@ public final class SphinxHaoHudRules {
         return TickTime.ceilSeconds(ticks);
     }
 
-    /** 嘉豪病毒: cooling down, else ready. / 嘉豪病毒：冷却中，否则就绪。 */
-    public static Line infectLine(int cooldownTicks) {
+    /**
+     * 嘉豪病毒, in priority order: unavailable while a 豪气冲天 window runs ({@code roarActive}, the synced
+     * {@code isRoarActive(now)}; the server refuses then), cooling down, ready.
+     * 嘉豪病毒，按优先级：豪气冲天窗口进行中时不可用（{@code roarActive}，即同步的 {@code isRoarActive(now)}；此时服务端会拒绝）、
+     * 冷却中、就绪。
+     */
+    public static Line infectLine(boolean roarActive, int cooldownTicks) {
+        if (roarActive) {
+            return new Line(INFECT_DURING_ROAR_KEY, Argument.NONE, 0, COOLDOWN_COLOR);
+        }
         if (cooldownTicks > 0) {
             return new Line(INFECT_COOLDOWN_KEY, Argument.SECONDS, seconds(cooldownTicks), COOLDOWN_COLOR);
         }

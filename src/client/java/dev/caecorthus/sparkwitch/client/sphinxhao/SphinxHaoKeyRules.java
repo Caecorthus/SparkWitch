@@ -21,14 +21,25 @@ public final class SphinxHaoKeyRules {
         SEND,
         /** Local "cooling down N s" hint. / 本地“冷却 N 秒”提示。 */
         COOLDOWN_HINT,
+        /**
+         * Local "嘉豪病毒: unavailable during 豪气冲天" hint (嘉豪病毒 only; the server refuses it then).
+         * 本地“嘉豪病毒：豪气冲天期间不可用”提示（仅嘉豪病毒；此时服务端会拒绝）。
+         */
+        DURING_ROAR_HINT,
         /** Local "陆泳中 N s" hint (豪气冲天 only). / 本地“陆泳中 N 秒”提示（仅豪气冲天）。 */
         ACTIVE_HINT
     }
 
-    /** 嘉豪病毒 (G). / 嘉豪病毒（G）。 */
-    public static Press infect(boolean livingSphinxHao, int cooldownTicks) {
+    /**
+     * 嘉豪病毒 (G), in the HUD row's order: a running 豪气冲天 window ({@code roarActive}), then the cooldown.
+     * 嘉豪病毒（G），与 HUD 行顺序一致：先看进行中的豪气冲天窗口（{@code roarActive}），再看冷却。
+     */
+    public static Press infect(boolean livingSphinxHao, boolean roarActive, int cooldownTicks) {
         if (!livingSphinxHao) {
             return Press.IGNORE;
+        }
+        if (roarActive) {
+            return Press.DURING_ROAR_HINT;
         }
         return cooldownTicks > 0 ? Press.COOLDOWN_HINT : Press.SEND;
     }

@@ -2191,6 +2191,7 @@
   "replay.sparkwitch.planner_task_slip.self": "%s 用任务单重排了自己的任务",
   "hud.sparkwitch.sphinx_hao.infect.ready": "嘉豪病毒就绪：按 %s",
   "hud.sparkwitch.sphinx_hao.infect.cooldown": "嘉豪病毒冷却中：%s秒",
+  "hud.sparkwitch.sphinx_hao.infect.during_roar": "嘉豪病毒：豪气冲天期间不可用",
   "hud.sparkwitch.sphinx_hao.roar.ready": "豪气冲天就绪：按 %s",
   "hud.sparkwitch.sphinx_hao.roar.cooldown": "豪气冲天冷却中：%s秒",
   "hud.sparkwitch.sphinx_hao.roar.active": "陆泳中：%s秒",

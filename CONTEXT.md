@@ -1592,8 +1592,9 @@ Current build baseline:
     on use), appended at the end of `sparkwitch.client.mixins.json`.
   - Forced crawl (陆泳): `SphinxHaoCrawlPose` and the common `mixin/sphinxhao/PlayerEntitySphinxHaoCrawlMixin` (listed
     right after `koko.KokoSprintDrainMixin`): `PlayerEntity#updatePose` HEAD sets SWIMMING and cancels while
-    `SphinxHaoWorldComponent.isCrawling(uuid, world time)`, on the server, the crawler's client and every observer, so
-    pose and hitbox agree with no packet; vanilla crawling slows input to sneak speed so no sprint starts, a running
+    `SphinxHaoWorldComponent.isCrawling(uuid, world time)`, on the server and the crawler's own client (observers see
+    the server-synced pose: vanilla `OtherClientPlayerEntity#updatePose` is an empty override), so pose and hitbox
+    agree with no packet; vanilla crawling slows input to sneak speed so no sprint starts, a running
     sprint is cleared at `tickMovement` HEAD and `jump` HEAD is cancelled. Riders, sleepers and spectators keep
     vanilla's pose; release is immediate on the local clock. A Pig keeps pig dimensions.
   - Crawler instinct veto (`client/sphinxhao/SphinxHaoInstinctVeto`, `client/mixin/sphinxhao/SphinxHaoInstinctVetoMixin`,

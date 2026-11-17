@@ -69,12 +69,16 @@ public final class SphinxHaoClient {
     public static void onAbilityKey(MinecraftClient client) {
         ClientPlayerEntity player = client == null ? null : client.player;
         SphinxHaoPlayerComponent state = player == null ? null : SphinxHaoPlayerComponent.KEY.getNullable(player);
-        if (state == null) {
+        SphinxHaoWorldComponent world = player == null ? null : SphinxHaoWorldComponent.KEY.getNullable(player.getWorld());
+        if (state == null || world == null) {
             return;
         }
-        int cooldown = state.infectCooldownRemaining(player.getWorld().getTime());
-        switch (SphinxHaoKeyRules.infect(isLivingSphinxHao(player), cooldown)) {
+        long now = player.getWorld().getTime();
+        int cooldown = state.infectCooldownRemaining(now);
+        switch (SphinxHaoKeyRules.infect(isLivingSphinxHao(player), world.isRoarActive(now), cooldown)) {
             case SEND -> send(UseSphinxHaoInfectC2SPayload.ID, new UseSphinxHaoInfectC2SPayload());
+            case DURING_ROAR_HINT -> player.sendMessage(
+                    Text.translatable(SphinxHaoHudRules.INFECT_DURING_ROAR_KEY), true);
             case COOLDOWN_HINT -> hint(player, SphinxHaoHudRules.INFECT_COOLDOWN_KEY, cooldown);
             default -> {
             }

@@ -2191,6 +2191,7 @@
   "replay.sparkwitch.planner_task_slip.self": "%s rerolled their own tasks with a task slip",
   "hud.sparkwitch.sphinx_hao.infect.ready": "Hao Virus ready: press %s",
   "hud.sparkwitch.sphinx_hao.infect.cooldown": "Hao Virus cooling down: %ss",
+  "hud.sparkwitch.sphinx_hao.infect.during_roar": "Hao Virus: unavailable during Hao to the Sky",
   "hud.sparkwitch.sphinx_hao.roar.ready": "Hao to the Sky ready: press %s",
   "hud.sparkwitch.sphinx_hao.roar.cooldown": "Hao to the Sky cooling down: %ss",
   "hud.sparkwitch.sphinx_hao.roar.active": "Land-swimming: %ss",

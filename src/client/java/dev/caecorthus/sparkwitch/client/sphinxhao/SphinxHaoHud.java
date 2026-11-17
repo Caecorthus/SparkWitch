@@ -71,7 +71,8 @@ final class SphinxHaoHud {
         }
         long now = client.world.getTime();
         int crawlTicks = world.isCrawling(player.getUuid(), now) ? world.roarRemaining(now) : 0;
-        SphinxHaoHudRules.Line infect = SphinxHaoHudRules.infectLine(state.infectCooldownRemaining(now));
+        SphinxHaoHudRules.Line infect = SphinxHaoHudRules.infectLine(world.isRoarActive(now),
+                state.infectCooldownRemaining(now));
         SphinxHaoHudRules.Line roar = SphinxHaoHudRules.roarLine(crawlTicks, state.roarCooldownRemaining(now));
         SphinxHaoHudRules.Line infected = SphinxHaoHudRules.infectedLine(world.infectedIds().size());
         SphinxHaoHudRules.Line hao = SphinxHaoHudRules.haoLine(state.hao());
@@ -103,6 +104,10 @@ final class SphinxHaoHud {
     }
 
     private static Text text(SphinxHaoHudRules.Line line, int value, Text keyText) {
-        return line.keyHint() ? Text.translatable(line.key(), keyText) : Text.translatable(line.key(), value);
+        if (line.keyHint()) {
+            return Text.translatable(line.key(), keyText);
+        }
+        return line.argument() == SphinxHaoHudRules.Argument.NONE ? Text.translatable(line.key())
+                : Text.translatable(line.key(), value);
     }
 }
