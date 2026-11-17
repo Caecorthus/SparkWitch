@@ -311,7 +311,12 @@
     "specter.SpecterOtherworldKnifeMixin",
     "specter.SpecterOtherworldGunMixin",
     "specter.GameFunctionsSpecterShieldMixin",
-    "specter.DecoratedPotBlockPeachwoodSwordMixin"
+    "specter.DecoratedPotBlockPeachwoodSwordMixin",
+    "sphinxhao.GameFunctionsSphinxHaoGunDropMixin",
+    "sphinxhao.PlayerEntitySphinxHaoGunMixin",
+    "sphinxhao.ServerPlayerEntitySphinxHaoGunDropMixin",
+    "sphinxhao.ScreenHandlerSphinxHaoGunMixin",
+    "sphinxhao.DecoratedPotBlockSphinxHaoGunMixin"
   ],
   "injectors": {
     "defaultRequire": 1

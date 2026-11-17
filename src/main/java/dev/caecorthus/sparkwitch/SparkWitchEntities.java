@@ -2,6 +2,8 @@ package dev.caecorthus.sparkwitch;
 
 import dev.caecorthus.sparkwitch.entity.NinjaGrapplingHookEntity;
 import dev.caecorthus.sparkwitch.entity.NinjaShurikenEntity;
+import dev.caecorthus.sparkwitch.entity.SphinxHaoFistEntity;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.entity.EntityType;
@@ -14,10 +16,12 @@ public final class SparkWitchEntities {
     public static final Identifier NINJA_SHURIKEN_ID = SparkWitch.id("ninja_shuriken");
     public static final Identifier MAGICIAN_PLAYBACK_ID = SparkWitch.id("magician_playback");
     public static final Identifier NINJA_GRAPPLING_HOOK_ID = SparkWitch.id("ninja_grappling_hook");
+    public static final Identifier SPHINX_HAO_FIST_ID = SphinxHaoRules.FIST_ENTITY_ID;
 
     private static EntityType<NinjaShurikenEntity> ninjaShuriken;
     private static EntityType<MagicianPlaybackEntity> magicianPlayback;
     private static EntityType<NinjaGrapplingHookEntity> ninjaGrapplingHook;
+    private static EntityType<SphinxHaoFistEntity> sphinxHaoFist;
     private static boolean registered;
 
     private SparkWitchEntities() {
@@ -75,6 +79,23 @@ public final class SparkWitchEntities {
                         .disableSummon()
                         .build(NINJA_GRAPPLING_HOOK_ID.toString())
         );
+        // Sphinx Hao spring fist: presentation only (the shot is a server hitscan), a plain Entity like the grappling
+        // hook, one shot long, never saved; appended last.
+        // 狮身豪的弹簧拳头：仅用于表现（射击是服务端即时射线），与钩爪一样是普通 Entity，只存在一次射击，从不保存；追加在最后。
+        sphinxHaoFist = Registry.register(
+                Registries.ENTITY_TYPE,
+                SPHINX_HAO_FIST_ID,
+                EntityType.Builder.<SphinxHaoFistEntity>create(SphinxHaoFistEntity::new, SpawnGroup.MISC)
+                        .dimensions(0.25F, 0.25F)
+                        .maxTrackingRange(4)
+                        .trackingTickInterval(1)
+                        .disableSaving()
+                        // Only a fired gun owns a fist; /summon would create an ownerless one.
+                        // 只有开火的手枪拥有拳头；/summon 会产生无主拳头。
+                        .disableSummon()
+                        .makeFireImmune()
+                        .build(SPHINX_HAO_FIST_ID.toString())
+        );
         registered = true;
     }
 
@@ -95,5 +116,12 @@ public final class SparkWitchEntities {
             throw new IllegalStateException("SparkWitch entities are not registered yet");
         }
         return ninjaGrapplingHook;
+    }
+
+    public static EntityType<SphinxHaoFistEntity> sphinxHaoFist() {
+        if (sphinxHaoFist == null) {
+            throw new IllegalStateException("SparkWitch entities are not registered yet");
+        }
+        return sphinxHaoFist;
     }
 }

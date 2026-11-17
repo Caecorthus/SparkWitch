@@ -2188,5 +2188,19 @@
   "replay.sparkwitch.planner_recommend": "%s recommended a task to %s",
   "replay.sparkwitch.planner_recommend.self": "%s recommended a task to themselves",
   "replay.sparkwitch.planner_task_slip": "%s handed %s a task slip",
-  "replay.sparkwitch.planner_task_slip.self": "%s rerolled their own tasks with a task slip"
+  "replay.sparkwitch.planner_task_slip.self": "%s rerolled their own tasks with a task slip",
+  "item.sparkwitch.sphinx_hao_hand_gun": "\"Hand\" Gun",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.loaded": "Loaded with one fist",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.empty": "Empty: right-click to load a fist round",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.usage": "Right-click to fire the fist, 25 blocks · Sphinx Hao only",
+  "item.sparkwitch.sphinx_hao_fist_ammo": "Fist Round",
+  "item.sparkwitch.sphinx_hao_fist_ammo.tooltip": "Ammo for the Jiahao pistol... but why is the bullet a fist?!",
+  "entity.sparkwitch.sphinx_hao_fist": "Spring Fist",
+  "message.sparkwitch.sphinx_hao_hand_gun.no_ammo": "No fist rounds left",
+  "message.sparkwitch.sphinx_hao_hand_gun.miss": "Jiahao hit the evil spirit behind the enemy",
+  "death_reason.sparkwitch.sphinx_hao_fist": "Punched out by a Jiahao fist",
+  "replay.death.sparkwitch.sphinx_hao_fist.killed": "%s was punched out by %s's §6iron fist§r",
+  "replay.death.sparkwitch.sphinx_hao_fist.died": "%s was punched out by an §6iron fist§r",
+  "replay.item_use.sparkwitch.sphinx_hao_hand_gun.hit": "%s landed the §6\"Hand\" Gun§r's fist on %s",
+  "replay.item_use.sparkwitch.sphinx_hao_hand_gun.miss": "%s fired the §6\"Hand\" Gun§r but punched no one"
 }

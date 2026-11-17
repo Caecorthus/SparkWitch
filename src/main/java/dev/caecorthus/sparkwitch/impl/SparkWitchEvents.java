@@ -460,6 +460,10 @@ public final class SparkWitchEvents {
         // which stays last. / 规划大师（平民，PR #219）：各服务的顺序由其注册中心固定；注册在橘雪莉之后、USEC 之前，USEC
         // 保持最后。
         dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerFeatureService.register();
+        // 狮身豪's "手"枪 (Team Jiahao, GUN work package): world-target veto, death cleanup and replay line; after 规划大师
+        // and before USEC, which stays last. / 狮身豪的“手”枪（嘉豪阵营，GUN 工作包）：世界目标否决、死亡清理与回放文本；
+        // 位于规划大师之后、USEC 之前，USEC 保持最后。
+        dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.gun.SphinxHaoGunFeatureService.register();
         // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
         // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
         UsecFeatureService.register();

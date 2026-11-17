@@ -12,6 +12,9 @@ import dev.caecorthus.sparkwitch.item.rope.RopeItem;
 import dev.caecorthus.sparkwitch.item.rope.RopeRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoLightstickItem;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.gun.SphinxHaoFistAmmoItem;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.gun.SphinxHaoHandGunItem;
 import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerTaskSlipItem;
 import dev.caecorthus.sparkwitch.item.sparekey.SpareKeyItem;
@@ -162,6 +165,8 @@ public final class SparkWitchItems {
     public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
     public static final Identifier KOKO_LIGHTSTICK_ID = KokoRules.LIGHTSTICK_ID;
     public static final Identifier PLANNER_TASK_SLIP_ID = PlannerRules.TASK_SLIP_ID;
+    public static final Identifier SPHINX_HAO_HAND_GUN_ID = SphinxHaoRules.HAND_GUN_ID;
+    public static final Identifier SPHINX_HAO_FIST_AMMO_ID = SphinxHaoRules.FIST_AMMO_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -233,6 +238,8 @@ public final class SparkWitchItems {
     private static Item rope;
     private static Item kokoLightstick;
     private static Item plannerTaskSlip;
+    private static Item sphinxHaoHandGun;
+    private static Item sphinxHaoFistAmmo;
 
     private static boolean registered;
 
@@ -637,6 +644,20 @@ public final class SparkWitchItems {
                 PLANNER_TASK_SLIP_ID,
                 new PlannerTaskSlipItem(PlannerTaskSlipItem.createSettings())
         );
+        // 狮身豪's spring-fist hand gun (one fist, loaded flag in a data component, so maxCount(1)) and its fist ammo
+        // (stacks of 16), appended last, after 规划大师's task slip, so earlier registration order stays unchanged.
+        // 狮身豪的弹簧拳头手枪（装一发拳头，装填标记在数据组件中，因此 maxCount(1)）与拳头子弹（16 个一组），追加在最后
+        // （规划大师的任务单之后），以保持既有注册顺序不变。
+        sphinxHaoHandGun = Registry.register(
+                Registries.ITEM,
+                SPHINX_HAO_HAND_GUN_ID,
+                new SphinxHaoHandGunItem(SphinxHaoHandGunItem.createSettings())
+        );
+        sphinxHaoFistAmmo = Registry.register(
+                Registries.ITEM,
+                SPHINX_HAO_FIST_AMMO_ID,
+                new SphinxHaoFistAmmoItem(SphinxHaoFistAmmoItem.createSettings())
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -689,6 +710,20 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return rope;
+    }
+
+    public static Item sphinxHaoHandGun() {
+        if (sphinxHaoHandGun == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return sphinxHaoHandGun;
+    }
+
+    public static Item sphinxHaoFistAmmo() {
+        if (sphinxHaoFistAmmo == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return sphinxHaoFistAmmo;
     }
 
     public static Item kokoLightstick() {

@@ -2188,5 +2188,19 @@
   "replay.sparkwitch.planner_recommend": "%s 为 %s 推荐了一项任务",
   "replay.sparkwitch.planner_recommend.self": "%s 为自己推荐了一项任务",
   "replay.sparkwitch.planner_task_slip": "%s 递给 %s 一份任务单",
-  "replay.sparkwitch.planner_task_slip.self": "%s 用任务单重排了自己的任务"
+  "replay.sparkwitch.planner_task_slip.self": "%s 用任务单重排了自己的任务",
+  "item.sparkwitch.sphinx_hao_hand_gun": "“手”枪",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.loaded": "已装填一发拳头",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.empty": "空膛：右键装填一发拳头子弹",
+  "item.sparkwitch.sphinx_hao_hand_gun.tooltip.usage": "右键发射拳头，射程 25 格 · 仅狮身豪可用",
+  "item.sparkwitch.sphinx_hao_fist_ammo": "拳头子弹",
+  "item.sparkwitch.sphinx_hao_fist_ammo.tooltip": "这是嘉豪手枪的子弹，但这子弹为什么是个拳头？！",
+  "entity.sparkwitch.sphinx_hao_fist": "弹簧拳头",
+  "message.sparkwitch.sphinx_hao_hand_gun.no_ammo": "没有拳头子弹了",
+  "message.sparkwitch.sphinx_hao_hand_gun.miss": "嘉豪击中了敌人身后的恶灵",
+  "death_reason.sparkwitch.sphinx_hao_fist": "被嘉豪的铁拳砸死了",
+  "replay.death.sparkwitch.sphinx_hao_fist.killed": "%s 被 %s 的§6铁拳§r砸死了",
+  "replay.death.sparkwitch.sphinx_hao_fist.died": "%s 被§6铁拳§r砸死了",
+  "replay.item_use.sparkwitch.sphinx_hao_hand_gun.hit": "%s 用§6“手”枪§r一拳打中了 %s",
+  "replay.item_use.sparkwitch.sphinx_hao_hand_gun.miss": "%s 开了一次§6“手”枪§r但没有打中人"
 }

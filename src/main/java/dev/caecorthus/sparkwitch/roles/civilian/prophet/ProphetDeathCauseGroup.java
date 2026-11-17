@@ -40,6 +40,8 @@ public enum ProphetDeathCauseGroup {
             entry("wathe:gun_shot", GUNSHOT),
             entry("wathe:gun_shot_backfire", GUNSHOT),
             entry("sparkwitch:savior_pistol_kill", GUNSHOT),
+            // Sphinx Hao "手"枪: the fist is fired from a pistol. / 狮身豪“手”枪：拳头由手枪射出。
+            entry("sparkwitch:sphinx_hao_fist", GUNSHOT),
             // Witch Maiden crimson wither skull: a gunshot for every other system (owner Q5, 2026-10-20).
             // 巫女赤色凋灵之首：在其他系统中按枪击处理（所有者 Q5，2026-10-20）。
             entry("sparkwitch:crimson_wither_skull", GUNSHOT),
