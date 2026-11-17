@@ -162,6 +162,7 @@ public final class SparkWitchItems {
     public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
     public static final Identifier KOKO_LIGHTSTICK_ID = KokoRules.LIGHTSTICK_ID;
     public static final Identifier PLANNER_TASK_SLIP_ID = PlannerRules.TASK_SLIP_ID;
+    public static final Identifier DEFENSE_VIAL_ID = SparkWitch.id("defense_vial");
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -232,6 +233,7 @@ public final class SparkWitchItems {
     private static Item hannaHandkerchief;
     private static Item rope;
     private static Item kokoLightstick;
+    private static Item defenseVial;
     private static Item plannerTaskSlip;
 
     private static boolean registered;
@@ -637,6 +639,11 @@ public final class SparkWitchItems {
                 PLANNER_TASK_SLIP_ID,
                 new PlannerTaskSlipItem(PlannerTaskSlipItem.createSettings())
         );
+        defenseVial = Registry.register(
+                Registries.ITEM,
+                DEFENSE_VIAL_ID,
+                new dev.caecorthus.sparkwitch.item.defense.DefenseVialItem(new Item.Settings().maxCount(1))
+        );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
@@ -696,6 +703,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return kokoLightstick;
+    }
+
+    public static Item defenseVial() {
+        if (defenseVial == null) {
+            throw new IllegalStateException("defense vial requested before SparkWitchItems.register()");
+        }
+        return defenseVial;
     }
 
     public static Item plannerTaskSlip() {

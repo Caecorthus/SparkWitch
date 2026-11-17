@@ -336,6 +336,7 @@ public final class SparkWitchEvents {
         // 犯罪推理学家 (neutral, PR #228): right after 泽渡可可; its win phase is ordered after hers.
         // 犯罪推理学家（中立，PR #228）：紧随泽渡可可；其胜负阶段排在她之后。
         CriminalReasonerRuntime.register();
+        dev.caecorthus.sparkwitch.item.defense.DefenseVialReplay.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.

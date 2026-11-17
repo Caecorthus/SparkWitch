@@ -311,7 +311,8 @@
     "specter.SpecterOtherworldKnifeMixin",
     "specter.SpecterOtherworldGunMixin",
     "specter.GameFunctionsSpecterShieldMixin",
-    "specter.DecoratedPotBlockPeachwoodSwordMixin"
+    "specter.DecoratedPotBlockPeachwoodSwordMixin",
+    "food.SparkFoodPlatterMixin"
   ],
   "injectors": {
     "defaultRequire": 1
