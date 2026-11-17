@@ -1,0 +1,6 @@
+{
+  "parent": "sparkwitch:block/template_trimmed_bed_foot",
+  "textures": {
+    "texture": "sparkwitch:block/grey_dirty_bed"
+  }
+}

@@ -336,6 +336,9 @@ public final class SparkWitchEvents {
         // 犯罪推理学家 (neutral, PR #228): right after 泽渡可可; its win phase is ordered after hers.
         // 犯罪推理学家（中立，PR #228）：紧随泽渡可可；其胜负阶段排在她之后。
         CriminalReasonerRuntime.register();
+        // Beds (2.0.7): no win phase, no tick loop; it only listens to TaskComplete to punish the strange one.
+        // 床（2.0.7）：没有胜负阶段、没有 tick 循环；只监听 TaskComplete 来惩罚那张奇怪的床。
+        dev.caecorthus.sparkwitch.block.service.SparkBedService.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.

@@ -637,6 +637,9 @@ public final class SparkWitchItems {
                 PLANNER_TASK_SLIP_ID,
                 new PlannerTaskSlipItem(PlannerTaskSlipItem.createSettings())
         );
+        // Beds belong to the item pass: their BlockItems are registered alongside every other item.
+        // 床属于物品注册流程：它们的 BlockItem 与其他物品一起注册。
+        dev.caecorthus.sparkwitch.registry.SparkWitchBlocks.register();
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;
