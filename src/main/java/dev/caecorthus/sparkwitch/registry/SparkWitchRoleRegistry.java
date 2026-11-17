@@ -1306,13 +1306,13 @@ public final class SparkWitchRoleRegistry {
         // (FAKE mood with fake tasks, civilian stamina, round clock). Registered right before the Insider, which stays last
         // (InsiderRegistrationContractTest), so only the Insider's own index shifts. Never drawn by a Wathe pass: the
         // Team Jiahao third-faction lineup deals the Insider or Sphinx Hao, 50/50, in the second seat
-        // (JiahaoThirdFactionLineup, owner Q1). Not in PoliceRoles (no SparkStrength tablet); never a Witch-skill role
-        // (kept out of isRegisteredSparkWitchRole and the gui.sparkwitch.skills panel). Skills, hao, shop and key live
-        // in roles/neutral/sphinxhao.
+        // (JiahaoThirdFactionLineup, owner Q1). Not in PoliceRoles (SparkStrength's public tablet only, no police
+        // channel); never a Witch-skill role (kept out of isRegisteredSparkWitchRole and the gui.sparkwitch.skills
+        // panel). Skills, hao, shop and key live in roles/neutral/sphinxhao.
         // 狮身豪（2026-11-17）：嘉豪阵营第二名成员（原生 Wathe JIAHAO），参数与内应相同（伪装情绪带假任务、平民体力、可见回合
         // 时间）。注册在内应之前、紧挨内应（内应仍为最后一个，InsiderRegistrationContractTest），因此只有内应自身的下标改变。
         // 从不由 Wathe 分配抽取：嘉豪阵营第三阵营阵容的第二个席位以各 50% 发放内应或狮身豪（JiahaoThirdFactionLineup，
-        // 所有者 Q1）。不加入 PoliceRoles（没有 SparkStrength 平板）；不是魔女技能职业（不加入 isRegisteredSparkWitchRole，
+        // 所有者 Q1）。不加入 PoliceRoles（只有 SparkStrength 公共频道平板，没有警用频道）；不是魔女技能职业（不加入 isRegisteredSparkWitchRole，
         // 也不进入 gui.sparkwitch.skills 面板）。技能、豪度值、商店与钥匙位于 roles/neutral/sphinxhao。
         sphinxHao = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SPHINX_HAO_ID, SparkWitchFactions.JIAHAO)
                 .color(SphinxHaoRules.COLOR)
