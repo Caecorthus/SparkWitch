@@ -1621,7 +1621,8 @@ Current build baseline:
     precedent). G is a branch right after the Athlete's in `SparkWitchClient`'s ability chain
     (`SphinxHaoClient.onAbilityKey`); N is `SecondaryAbilityRegistry.register` in `SphinxHaoClient.init()` (right after
     `KokoClient.init()`). `SphinxHaoKeyRules` trims presses (not a living, unswallowed raw-role 狮身豪: nothing;
-    cooling or crawling: a local action-bar hint; else send if `canSend`); nothing is predicted.
+    cooling, crawling, or G during a running 豪气冲天 window (the server refuses infecting then; the HUD row reads
+    「嘉豪病毒：豪气冲天期间不可用」): a local action-bar hint; else send if `canSend`); nothing is predicted.
   - Replay: `replay.skill.sparkwitch.sphinx_hao.infect` (actor, target) and `.roar` (actor, count), plus the gun's
     item-use and death keys.
   - Lang: `role`/`announcement` (title, goal, goals, win) keys for `sphinx_hao` and `sparkwitch.sphinx_hao`,
