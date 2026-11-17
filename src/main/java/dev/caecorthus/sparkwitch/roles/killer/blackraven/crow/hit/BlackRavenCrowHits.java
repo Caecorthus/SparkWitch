@@ -325,6 +325,22 @@ public final class BlackRavenCrowHits {
     }
 
     /**
+     * 狮身豪 "手"枪 single rewound eye ray (server), before the puppet and device steps: exactly the shotgun's centre-ray
+     * query ({@link #onShotgunFired}) for the fist's block-clipped ray, with the fist's player margin as {@code growth}.
+     * A crow nearer than {@code aimed}, every puppet and every breakable device takes the fist; its owner is substituted
+     * ({@link BlackRavenCrowTargets#substitute}) and the caller kills it through its own player path, as the USEC rifle
+     * does, so the outcome is the owner's real kill. Null when no crow is first.
+     * 狮身豪“手”枪的单条回溯眼睛射线（服务端），在皮套与设备步骤之前：对拳头按方块截断的射线执行与猎枪中心射线完全相同的查询
+     * （{@link #onShotgunFired}），{@code growth} 取拳头的玩家余量。比 {@code aimed}、所有皮套与所有可打坏设备都更近的乌鸦承受
+     * 拳头；其主人被替身（{@link BlackRavenCrowTargets#substitute}），调用方经自身玩家路径击杀，与 USEC 步枪一致，因此结果就是
+     * 对主人的真实击杀。没有乌鸦在最前时为 null。
+     */
+    public static @Nullable ShotgunHit onSphinxHaoFistFired(ServerPlayerEntity shooter, @Nullable PlayerEntity aimed,
+                                                            Vec3d eye, Vec3d end, double growth) {
+        return onShotgunFired(shooter, aimed, eye, end, growth);
+    }
+
+    /**
      * A shotgun ray's crow hit: the substituted owner plus the squared ray entry, so the buckshot orders its victims
      * like plain player hits. / 猎枪射线的乌鸦命中：被替身的主人及射线入射平方距离，使霰弹像普通玩家命中一样排列受害者。
      */

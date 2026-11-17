@@ -440,6 +440,24 @@ public final class SeekerDeviceHits {
     }
 
     /**
+     * Read-only preview of {@link #onSphinxHaoFistFired} for the fist visual: the device that call would absorb and break
+     * for the same arguments, else null. Breaks, marks and records nothing; call it first, since the break removes the
+     * device. A SparkStrength Partygoer or drone (hooked into {@link #onSphinxHaoFistFired} only) is not seen here.
+     * {@link #onSphinxHaoFistFired} 的只读预览，供拳头表现使用：对相同参数该调用会吸收并打坏的设备，否则为 null。不打坏、不标记、
+     * 不记录任何内容；须先调用，因为打坏会移除该设备。SparkStrength 的派对客或无人机（只挂接在 {@link #onSphinxHaoFistFired}
+     * 上）在这里看不到。
+     */
+    @Nullable
+    public static SeekerDeviceEntity sphinxHaoFistAbsorber(ServerPlayerEntity user, @Nullable PlayerEntity target,
+                                                          double range) {
+        if (user == null || user.getWorld().isClient()) {
+            return null;
+        }
+        SeekerDeviceRaycast.DeviceHit hit = rayBlockingHit(user, target, range);
+        return hit == null ? null : hit.device();
+    }
+
+    /**
      * Read-only preview of {@link #onShriekGunFired} for the beam particles: the device that call would absorb and
      * break for the same arguments (the same ray and the same {@link SeekerDamageRules#mayBreak} filter as
      * {@code rayBlocks}), else null. Breaks, marks and records nothing; call it before {@link #onShriekGunFired},
