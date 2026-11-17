@@ -2,12 +2,17 @@ package dev.caecorthus.sparkwitch.client.insider;
 
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderParticipation;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
 import dev.doctor4t.wathe.api.Role;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Pure Insider instinct-outline rules (D8, C7, C8). Hooks feed plain synced facts in; nothing here touches the
- * client or the world.
+ * Pure Insider instinct-outline rules (D8, C7, C8), generalised to both SparkWitch partners of the Corrupt Cop, the
+ * Insider and 狮身豪 Sphinx Hao (coordinator 2026-11-17): a living Sphinx Hao gets the Insider's own view and
+ * killer-style instinct light, and the Corrupt Cop sees a Sphinx Hao the way it sees the Insider. Wherever the Insider's
+ * mint stands for a partner, a Sphinx Hao is painted in its own role colour {@code 0xFF7F50}; a Sphinx Hao's own view
+ * paints its other targets in that colour. Rounds without a Sphinx Hao answer exactly as before. Hooks feed plain
+ * synced facts in; nothing here touches the client or the world.
  * <ul>
  *     <li>A living Insider holding the instinct key sees the Corrupt Cop in navy and every other visible target in
  *     mint, at {@link #INSIDER_VIEW_PRIORITY}.</li>
@@ -20,7 +25,10 @@ import org.jetbrains.annotations.Nullable;
  * key-up frame answers nothing and never hides lower-priority always-on outlines. While the Insider holds the key its
  * own view stays below SparkStrength's tablet suspect mark (80), so that mark keeps its color, except on the Corrupt
  * Cop, which always stays navy.
- * 内应本能描边的纯规则（D8、C7、C8）。钩子只传入已同步的事实，这里不接触客户端或世界。
+ * 内应本能描边的纯规则（D8、C7、C8），推广到黑警的两种 SparkWitch 搭档：内应与狮身豪（协调者 2026-11-17）：存活的狮身豪
+ * 获得内应自身视角与杀手式本能夜视，黑警看狮身豪与看内应相同。凡是用内应薄荷青代表搭档之处，狮身豪改用其职业色
+ * {@code 0xFF7F50}；狮身豪自身视角也用该颜色描绘其他目标。没有狮身豪的对局作答与以前完全相同。钩子只传入已同步的事实，
+ * 这里不接触客户端或世界。
  * <ul>
  *     <li>存活内应按住本能键：黑警显示黑警深蓝，其他可见目标显示薄荷青，优先级 {@link #INSIDER_VIEW_PRIORITY}。</li>
  *     <li>存活黑警按住本能键或处于 NoellesRoles 黑警时刻的透视窗口：可见的内应显示薄荷青，优先级 {@link #PRIORITY}。</li>
@@ -60,6 +68,8 @@ public final class InsiderHighlightRules {
     public enum Viewer {
         /** A living Insider. / 存活的内应。 */
         INSIDER,
+        /** A living Sphinx Hao: the Insider's own view in its role colour. / 存活的狮身豪：以其职业色呈现的内应视角。 */
+        SPHINX_HAO,
         /** A living NoellesRoles Corrupt Cop. / 存活的 NoellesRoles 黑警。 */
         CORRUPT_COP,
         /** Anyone else, killers and dead or spectating viewers included: Insider rules stay silent. / 其他人（含杀手、死亡或旁观者）：内应规则不作答。 */
@@ -70,12 +80,12 @@ public final class InsiderHighlightRules {
     }
 
     /**
-     * Cheap pre-filter before any viewer classification: only the Insider's own view answers for a non-Insider target,
-     * so the Corrupt Cop check runs only when the target is an Insider.
-     * 在观察者分类之前的廉价预筛：只有内应自身视角会对非内应目标作答，因此黑警判断只在目标是内应时执行。
+     * Cheap pre-filter before any viewer classification: only a partner's own view answers for a non-partner target,
+     * so the Corrupt Cop check runs only when the target is a partner (Insider or Sphinx Hao).
+     * 在观察者分类之前的廉价预筛：只有搭档自身视角会对非搭档目标作答，因此黑警判断只在目标是搭档（内应或狮身豪）时执行。
      */
     public static boolean mayAnswer(@Nullable Role viewerRole, @Nullable Role targetRole) {
-        return InsiderParticipation.isInsiderRole(viewerRole) || InsiderParticipation.isInsiderRole(targetRole);
+        return InsiderParticipation.isPartnerRole(viewerRole) || InsiderParticipation.isPartnerRole(targetRole);
     }
 
     /**
@@ -89,6 +99,9 @@ public final class InsiderHighlightRules {
         }
         if (InsiderParticipation.isInsiderRole(viewerRole)) {
             return Viewer.INSIDER;
+        }
+        if (InsiderParticipation.isSphinxHaoRole(viewerRole)) {
+            return Viewer.SPHINX_HAO;
         }
         return InsiderParticipation.isCorruptCopRole(viewerRole) ? Viewer.CORRUPT_COP : Viewer.NONE;
     }
@@ -117,7 +130,8 @@ public final class InsiderHighlightRules {
      * 即使黑警带有平板嫌疑人标记，搭档仍显示深蓝）；内应自身视角的其他目标为 {@link #INSIDER_VIEW_PRIORITY}。
      */
     public static int priority(Viewer viewer, @Nullable Role targetRole) {
-        return viewer == Viewer.INSIDER && !InsiderParticipation.isCorruptCopRole(targetRole)
+        return (viewer == Viewer.INSIDER || viewer == Viewer.SPHINX_HAO)
+                && !InsiderParticipation.isCorruptCopRole(targetRole)
                 ? INSIDER_VIEW_PRIORITY
                 : PRIORITY;
     }
@@ -132,20 +146,31 @@ public final class InsiderHighlightRules {
     public static @Nullable Integer color(Viewer viewer, boolean instinctKey, boolean corruptCopVisionWindow,
                                           @Nullable Role targetRole) {
         return switch (viewer) {
-            case INSIDER -> !instinctKey ? null
-                    : InsiderParticipation.isCorruptCopRole(targetRole) ? InsiderRules.CORRUPT_COP_COLOR : InsiderRules.COLOR;
-            case CORRUPT_COP -> (instinctKey || corruptCopVisionWindow) && InsiderParticipation.isInsiderRole(targetRole)
-                    ? InsiderRules.COLOR : null;
+            case INSIDER, SPHINX_HAO -> !instinctKey ? null
+                    : InsiderParticipation.isCorruptCopRole(targetRole) ? InsiderRules.CORRUPT_COP_COLOR
+                    : InsiderParticipation.isPartnerRole(targetRole) ? partnerColor(targetRole)
+                    : viewer == Viewer.SPHINX_HAO ? SphinxHaoRules.COLOR : InsiderRules.COLOR;
+            case CORRUPT_COP -> (instinctKey || corruptCopVisionWindow) && InsiderParticipation.isPartnerRole(targetRole)
+                    ? partnerColor(targetRole) : null;
             case NONE -> null;
         };
     }
 
     /**
-     * The Insider shares killer-style instinct night vision (owner-approved A3). The Corrupt Cop is not added here:
-     * SparkStrength already grants it.
-     * 内应使用杀手式本能夜视（所有者批准的 A3）。黑警不在此添加：SparkStrength 已经提供。
+     * A partner's colour where the Insider's mint stands for it: mint for an Insider, coral for a Sphinx Hao.
+     * 用内应薄荷青代表搭档之处的颜色：内应为薄荷青，狮身豪为珊瑚色。
+     */
+    static int partnerColor(@Nullable Role partnerRole) {
+        return InsiderParticipation.isSphinxHaoRole(partnerRole) ? SphinxHaoRules.COLOR : InsiderRules.COLOR;
+    }
+
+    /**
+     * Both partners, the Insider (owner-approved A3) and Sphinx Hao (coordinator 2026-11-17), share killer-style
+     * instinct night vision. The Corrupt Cop is not added here: SparkStrength already grants it.
+     * 两种搭档——内应（所有者批准的 A3）与狮身豪（协调者 2026-11-17）——使用杀手式本能夜视。黑警不在此添加：SparkStrength
+     * 已经提供。
      */
     public static boolean usesKillerStyleInstinctLight(@Nullable Role role) {
-        return InsiderParticipation.isInsiderRole(role);
+        return InsiderParticipation.isPartnerRole(role);
     }
 }

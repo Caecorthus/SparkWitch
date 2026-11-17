@@ -59,6 +59,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanSettlement;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.JiahaoThirdFactionLineup;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
 import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
@@ -145,6 +146,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier NIKAIDO_HIRO_ID = HiroRules.ROLE_ID;
     public static final Identifier KOKO_ID = KokoRules.ROLE_ID;
     public static final Identifier PLANNER_MASTER_ID = PlannerRules.ROLE_ID;
+    public static final Identifier SPHINX_HAO_ID = SphinxHaoRules.ROLE_ID;
 
     private static Role emma;
     private static Role grandWitch;
@@ -206,6 +208,7 @@ public final class SparkWitchRoleRegistry {
     private static Role nikaidoHiro;
     private static Role koko;
     private static Role plannerMaster;
+    private static Role sphinxHao;
     private static boolean registered;
 
     private SparkWitchRoleRegistry() {
@@ -587,6 +590,11 @@ public final class SparkWitchRoleRegistry {
     public static Role plannerMaster() {
         ensureRegistered();
         return plannerMaster;
+    }
+
+    public static Role sphinxHao() {
+        ensureRegistered();
+        return sphinxHao;
     }
 
     public static boolean isSparkWitchRole(Role role) {
@@ -1294,6 +1302,25 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.CIVILIAN)
                 .build());
+        // 狮身豪 Sphinx Hao (2026-11-17): the second Team Jiahao member (native Wathe JIAHAO) with the Insider's profile
+        // (FAKE mood with fake tasks, civilian stamina, round clock). Registered right before the Insider, which stays last
+        // (InsiderRegistrationContractTest), so only the Insider's own index shifts. Never drawn by a Wathe pass: the
+        // Team Jiahao third-faction lineup deals the Insider or Sphinx Hao, 50/50, in the second seat
+        // (JiahaoThirdFactionLineup, owner Q1). Not in PoliceRoles (no SparkStrength tablet); never a Witch-skill role
+        // (kept out of isRegisteredSparkWitchRole and the gui.sparkwitch.skills panel). Skills, hao, shop and key live
+        // in roles/neutral/sphinxhao.
+        // 狮身豪（2026-11-17）：嘉豪阵营第二名成员（原生 Wathe JIAHAO），参数与内应相同（伪装情绪带假任务、平民体力、可见回合
+        // 时间）。注册在内应之前、紧挨内应（内应仍为最后一个，InsiderRegistrationContractTest），因此只有内应自身的下标改变。
+        // 从不由 Wathe 分配抽取：嘉豪阵营第三阵营阵容的第二个席位以各 50% 发放内应或狮身豪（JiahaoThirdFactionLineup，
+        // 所有者 Q1）。不加入 PoliceRoles（没有 SparkStrength 平板）；不是魔女技能职业（不加入 isRegisteredSparkWitchRole，
+        // 也不进入 gui.sparkwitch.skills 面板）。技能、豪度值、商店与钥匙位于 roles/neutral/sphinxhao。
+        sphinxHao = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SPHINX_HAO_ID, SparkWitchFactions.JIAHAO)
+                .color(SphinxHaoRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(true)
+                .appearanceCondition(context -> false)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn by a Wathe pass:
         // SparkFactionAPI's third-faction draw deals it beside the Corrupt Cop when Team Jiahao has a second slot
@@ -1419,6 +1446,8 @@ public final class SparkWitchRoleRegistry {
                 savior,
                 fiend,
                 insider,
+                // 狮身豪 (2026-11-17) follows its Team Jiahao partner, the Insider. / 狮身豪（2026-11-17）紧随嘉豪阵营同伴内应。
+                sphinxHao,
                 stowaway,
                 schrodingersCat,
                 // The Charon (PR #202) and then its Lost Soul (owner 2026-11-09) close the neutral block after
