@@ -65,6 +65,7 @@ public final class SparkWitchRoles {
     public static final Identifier KOKO_ID = SparkWitchRoleRegistry.KOKO_ID;
     public static final Identifier CRIMINAL_REASONER_ID = SparkWitchRoleRegistry.CRIMINAL_REASONER_ID;
     public static final Identifier PLANNER_MASTER_ID = SparkWitchRoleRegistry.PLANNER_MASTER_ID;
+    public static final Identifier SPHINX_HAO_ID = SparkWitchRoleRegistry.SPHINX_HAO_ID;
 
     private SparkWitchRoles() {
     }
@@ -309,6 +310,10 @@ public final class SparkWitchRoles {
 
     public static Role plannerMaster() {
         return SparkWitchRoleRegistry.plannerMaster();
+    }
+
+    public static Role sphinxHao() {
+        return SparkWitchRoleRegistry.sphinxHao();
     }
 
     public static List<Role> assassinGuessRoles() {

@@ -43,7 +43,10 @@ public final class SchrodingersCatRules {
 
     /** The side a transformed cat joins. / 转化后的猫加入的阵营。 */
     public enum Side {
-        /** Corrupt Cop or Insider killer: the cat becomes an Insider. / 黑警或内应所杀：猫变为内应。 */
+        /**
+         * Team Jiahao killer (Corrupt Cop, Insider or Sphinx Hao, {@code InsiderParticipation.isTeamRole}): the cat
+         * becomes an Insider. / 嘉豪阵营所杀（黑警、内应或狮身豪，{@code InsiderParticipation.isTeamRole}）：猫变为内应。
+         */
         TEAM_JIAHAO,
         /** Any Witch-faction member killer: the cat becomes a Bewitched (owner 2026-11-04). / 魔女阵营成员所杀：猫变为魔化使（所有者 2026-11-04）。 */
         WITCH,

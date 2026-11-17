@@ -20,19 +20,21 @@ import java.util.UUID;
  * Server adapter between the Team Jiahao mixins and {@link JiahaoTeamWinRules}: it reads Wathe's role map and
  * liveness plus NoellesRoles' swallow flag (hard dependency, pinned {@code b58fa5f}), and maps the rules' UUIDs back
  * to players. Snapshots follow Wathe's role map order, which is also the order NoellesRoles' own
- * {@code getAllWithRole} walks. In a round without an Insider every entry point returns the host value (C13). Server
- * only.
+ * {@code getAllWithRole} walks. Members are every Corrupt Cop, Insider and Sphinx Hao
+ * ({@link InsiderParticipation#isTeamRole}); in a round without a partner (Insider or Sphinx Hao) every entry point
+ * returns the host value (C13). Server only.
  * 嘉豪阵营 mixin 与 {@link JiahaoTeamWinRules} 之间的服务端适配器：读取 Wathe 职业表与存活状态以及 NoellesRoles 的
  * 吞噬标记（硬依赖，固定 {@code b58fa5f}），再把规则给出的 UUID 映射回玩家。快照沿用 Wathe 职业表的顺序，也就是
- * NoellesRoles 自身 {@code getAllWithRole} 的遍历顺序。本局没有内应时，每个入口都返回宿主原值（C13）。仅服务端。
+ * NoellesRoles 自身 {@code getAllWithRole} 的遍历顺序。成员为所有黑警、内应与狮身豪
+ * （{@link InsiderParticipation#isTeamRole}）；本局没有搭档（内应或狮身豪）时，每个入口都返回宿主原值（C13）。仅服务端。
  */
 public final class JiahaoTeamWinSeam {
     private JiahaoTeamWinSeam() {
     }
 
     /**
-     * Team list that replaces the Corrupt Cop lookup list; {@code hostLookup} when the round has no Insider.
-     * 替换黑警查找列表的阵营成员列表；本局没有内应时为 {@code hostLookup}。
+     * Team list that replaces the Corrupt Cop lookup list; {@code hostLookup} when the round has no partner.
+     * 替换黑警查找列表的阵营成员列表；本局没有搭档时为 {@code hostLookup}。
      */
     public static List<UUID> memberLookup(ServerWorld world, GameWorldComponent game, List<UUID> hostLookup) {
         return JiahaoTeamWinRules.lookup(members(world, game), hostLookup);
@@ -49,9 +51,9 @@ public final class JiahaoTeamWinSeam {
 
     /**
      * The team's win in place of NoellesRoles' single-winner result; {@code hostResult} is kept when the winners are
-     * exactly NoellesRoles' own (a round without an Insider, or a lone online member). Offline members cannot be named
+     * exactly NoellesRoles' own (a round without a partner, or a lone online member). Offline members cannot be named
      * in a {@code WinResult}; {@link #creditTeamJiahaoRows} credits their round-end rows.
-     * 用阵营胜利替换 NoellesRoles 的单人胜利结果；胜者恰为 NoellesRoles 自身胜者（本局没有内应，或只有一名在线成员）时保留
+     * 用阵营胜利替换 NoellesRoles 的单人胜利结果；胜者恰为 NoellesRoles 自身胜者（本局没有搭档，或只有一名在线成员）时保留
      * {@code hostResult}。离线成员无法列入 {@code WinResult}，由 {@link #creditTeamJiahaoRows} 在结算行中计为获胜。
      */
     public static CheckWinCondition.WinResult teamWin(
@@ -85,22 +87,26 @@ public final class JiahaoTeamWinSeam {
 
     /**
      * Rewrites Wathe's explicit-winner rows before they sync, see {@link JiahaoTeamWinRules#roundEndCredit}: a Team
-     * Jiahao win credits every team row, offline ones included (C14), and leads with an Insider row (D7). Wathe's
+     * Jiahao win credits every team row, offline ones included (C14), and leads with a row of the primary's partner
+     * kind ({@link JiahaoTeamWinRules#leadPartner}, D7). Wathe calls this overload in the same tick as the win check,
+     * before {@code stopGame}, so the member snapshot here matches the one the win was decided on. Wathe's
      * {@code didWin} and {@code GameRecordManager.endMatch} read these same rows, so they agree with the end screen.
      * 在 Wathe 显式胜者结算行同步前改写它们，见 {@link JiahaoTeamWinRules#roundEndCredit}：嘉豪阵营胜利时所有阵营行（含离线行，
-     * C14）计为获胜，并由内应行领衔（D7）。Wathe 的 {@code didWin} 与 {@code GameRecordManager.endMatch} 读取同一批结算行，
-     * 因此与结算界面一致。
+     * C14）计为获胜，并由与主胜者同类的搭档行领衔（{@link JiahaoTeamWinRules#leadPartner}，D7）。Wathe 在胜负判定的同一刻、
+     * {@code stopGame} 之前调用该重载，因此这里的成员快照与判定胜利时一致。Wathe 的 {@code didWin} 与
+     * {@code GameRecordManager.endMatch} 读取同一批结算行，因此与结算界面一致。
      */
     public static void creditTeamJiahaoRows(ServerWorld world, List<GameRoundEndComponent.RoundEndData> rows) {
-        creditTeamJiahaoRows(rows, JiahaoTeamWinRules.appliesTo(members(world, GameWorldComponent.KEY.get(world))));
+        creditTeamJiahaoRows(rows, JiahaoTeamWinRules.leadPartner(members(world, GameWorldComponent.KEY.get(world))));
     }
 
-    static void creditTeamJiahaoRows(List<GameRoundEndComponent.RoundEndData> rows, boolean roundHasInsider) {
+    static void creditTeamJiahaoRows(List<GameRoundEndComponent.RoundEndData> rows,
+                                     @Nullable JiahaoTeamWinRules.Kind leadPartner) {
         List<JiahaoTeamWinRules.RoundEndRow> view = new ArrayList<>(rows.size());
         for (GameRoundEndComponent.RoundEndData row : rows) {
             view.add(new JiahaoTeamWinRules.RoundEndRow(row.role(), row.isWinner()));
         }
-        JiahaoTeamWinRules.RoundEndCredit credit = JiahaoTeamWinRules.roundEndCredit(view, roundHasInsider);
+        JiahaoTeamWinRules.RoundEndCredit credit = JiahaoTeamWinRules.roundEndCredit(view, leadPartner);
         for (int index : credit.newWinners()) {
             GameRoundEndComponent.RoundEndData row = rows.get(index);
             rows.set(index, new GameRoundEndComponent.RoundEndData(row.player(), row.role(), row.endStatus(), true));
@@ -114,14 +120,15 @@ public final class JiahaoTeamWinSeam {
         List<JiahaoTeamWinRules.Member> members = new ArrayList<>();
         for (Map.Entry<UUID, Role> entry : game.getRoles().entrySet()) {
             Role role = entry.getValue();
-            if (!InsiderParticipation.isTeamRole(role)) {
+            JiahaoTeamWinRules.Kind kind = role == null ? null : JiahaoTeamWinRules.Kind.of(role.identifier());
+            if (kind == null) {
                 continue;
             }
             PlayerEntity player = world.getPlayerByUuid(entry.getKey());
             boolean alive = GameFunctions.isPlayerPlayingAndAlive(player);
             members.add(new JiahaoTeamWinRules.Member(
                     entry.getKey(),
-                    InsiderParticipation.isInsiderRole(role),
+                    kind,
                     player instanceof ServerPlayerEntity,
                     alive,
                     alive && SwallowedPlayerComponent.isPlayerSwallowed(player)
