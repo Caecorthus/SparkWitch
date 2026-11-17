@@ -114,10 +114,10 @@ public final class SphinxHaoFistEntityRenderer extends EntityRenderer<SphinxHaoF
         }
         Vec3d direction = ray.multiply(1.0D / distance);
         double knuckle = distance * extension;
+        // Open cells next to the wrist, one partial cell unfolding out of the muzzle (no refolding, no dense band).
+        // 靠近腕部的张开单元，以及从枪口展开的一个不完整单元（不重新折叠，没有密集色带）。
         SphinxHaoLatticeGeometry.Lattice lattice = SphinxHaoLatticeGeometry.Lattice.of(
-                SphinxHaoLatticeGeometry.span(knuckle, FIST_SCALE),
-                SphinxHaoLatticeGeometry.cellCount(
-                        SphinxHaoLatticeGeometry.fullSpanEstimate(target.distanceTo(origin), FIST_SCALE)));
+                SphinxHaoLatticeGeometry.span(knuckle, FIST_SCALE));
 
         World world = fist.getWorld();
         Vec3d lightProbe = anchor.add(direction.multiply(knuckle - Math.min(LIGHT_PROBE_BACKOFF, knuckle)));
@@ -237,7 +237,10 @@ public final class SphinxHaoFistEntityRenderer extends EntityRenderer<SphinxHaoF
         return side;
     }
 
-    /** Cells, crossing rivets and pivot rivets, light lerped from the muzzle to the fist. / 单元、交叉铆钉与端点铆钉，光照从枪口插值到拳头。 */
+    /**
+     * The partial cell, the open cells with their crossing rivets and the pivot rivets, light lerped from the muzzle to
+     * the fist. / 不完整单元、张开单元及其交叉铆钉与铰接铆钉，光照从枪口插值到拳头。
+     */
     private static void renderLattice(
             SphinxHaoLatticeGeometry.Lattice lattice,
             BoxVertices slats,
@@ -246,13 +249,19 @@ public final class SphinxHaoFistEntityRenderer extends EntityRenderer<SphinxHaoF
             int fistLight
     ) {
         double span = lattice.span();
-        for (int cell = 0; cell < lattice.cells(); cell++) {
+        slats.light = anchorLight;
+        rivets.light = anchorLight;
+        lattice.emitPartial(slats, rivets);
+        for (int cell = 0; cell < lattice.fullCells(); cell++) {
             int light = lerpLight(fraction(lattice.crossingX(cell), span), anchorLight, fistLight);
             slats.light = light;
             rivets.light = light;
             lattice.emitCell(cell, slats, rivets);
         }
-        for (int pivot = 0; pivot <= lattice.cells(); pivot++) {
+        if (lattice.fullCells() == 0 && !lattice.hasPartial()) {
+            return;
+        }
+        for (int pivot = 0; pivot <= lattice.fullCells(); pivot++) {
             rivets.light = lerpLight(fraction(lattice.pivotX(pivot), span), anchorLight, fistLight);
             lattice.emitPivotRivets(pivot, rivets);
         }

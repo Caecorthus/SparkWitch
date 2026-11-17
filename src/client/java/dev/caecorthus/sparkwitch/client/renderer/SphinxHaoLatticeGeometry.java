@@ -8,11 +8,15 @@ import org.joml.Vector3fc;
  * ray, the scissor lattice (lazy tongs) between the muzzle and the fist's wrist, the textured boxes its slats and rivets
  * are made of, and the muzzle anchor the whole assembly starts from.
  * <p>
- * Lattice: a chain of X cells with a CONSTANT slat length {@link #SLAT_LENGTH} and a cell count fixed for the whole
- * shot ({@link #cellCount}), so as the span grows the cells lengthen and the zigzag flattens ("opens"), and folds back
- * as it shrinks. Cell {@code i} spans {@code x_i..x_{i+1}}; slat A runs from {@code (x_i, -h)} to {@code (x_{i+1}, +h)}
- * on layer A (+side), slat B from {@code (x_i, +h)} to {@code (x_{i+1}, -h)} on layer B (-side); neighbouring cells
- * share their end pivots. 2D lattice coordinates are {@code x} along the ray from the anchor and {@code y} up.
+ * Lattice (2026-11-17, from dev-client screenshots): every full X cell stays OPEN at {@link #OPEN_ANGLE_DEGREES} from
+ * the ray ({@link #CELL_LENGTH} long, pivots at {@code +/-}{@link #HALF_HEIGHT}); the number of full cells follows the
+ * current span ({@code floor(span / cell)}), anchored at the fist's wrist, and ONE partial cell at the muzzle end
+ * shows only the part already out of the gun: its slats run between the same pivot heights over the remaining length,
+ * so its angle eases from folded (upright) to open as it emerges, and back while retracting. Cells never refold, so
+ * there is no dense band at any age. Cell {@code k} spans {@code pivotX(k)..pivotX(k+1)}; slat A runs from
+ * {@code (x, -h)} to {@code (x', +h)} on layer A (+side), slat B from {@code (x, +h)} to {@code (x', -h)} on layer B
+ * (-side); neighbouring cells share their end pivots. 2D lattice coordinates are {@code x} along the ray from the
+ * anchor and {@code y} up.
  * <p>
  * Boxes are emitted in the frame {@link ProjectileModels#faceAlong} leaves at the anchor: the ray is local -Z, the
  * lattice "up" (perpendicular to the ray, in its vertical plane) is +Y and the lattice side is +X. The same frame turns
@@ -20,10 +24,12 @@ import org.joml.Vector3fc;
  * 狮身豪弹簧拳头（{@link SphinxHaoFistEntityRenderer}）的纯几何：拳头在射线上的位置、枪口与拳头腕部之间的剪刀架
  * （伸缩夹）、构成剪刀片与铆钉的贴图盒体，以及整个装置的枪口锚点。
  * <p>
- * 剪刀架：一串 X 形单元，剪刀片长度恒为 {@link #SLAT_LENGTH}，单元数在整次射击中固定（{@link #cellCount}），因此跨度增大时
- * 单元沿轴拉长、锯齿变平（“张开”），跨度缩小时折回。第 {@code i} 个单元覆盖 {@code x_i..x_{i+1}}；A 片位于 A 层（+侧向），
- * 从 {@code (x_i, -h)} 到 {@code (x_{i+1}, +h)}；B 片位于 B 层（-侧向），从 {@code (x_i, +h)} 到 {@code (x_{i+1}, -h)}；
- * 相邻单元共用端点铰接。二维坐标中 {@code x} 为从锚点沿射线的距离，{@code y} 向上。
+ * 剪刀架（2026-11-17，依据开发客户端截图）：每个完整 X 单元始终以与射线成 {@link #OPEN_ANGLE_DEGREES} 的角度张开（长
+ * {@link #CELL_LENGTH}，铰接位于 {@code +/-}{@link #HALF_HEIGHT}）；完整单元数随当前跨度变化（{@code floor(跨度 / 单元长)}），
+ * 以拳头腕部为基准；枪口一端另有一个不完整单元，只显示已伸出枪外的部分：其剪刀片在相同的铰接高度之间跨越剩余长度，因此伸出时
+ * 角度从折叠（竖直）逐渐变为张开，收回时反向。单元从不重新折叠，因此任何时刻都不会出现密集色带。第 {@code k} 个单元覆盖
+ * {@code pivotX(k)..pivotX(k+1)}；A 片位于 A 层（+侧向），从 {@code (x, -h)} 到 {@code (x', +h)}；B 片位于 B 层（-侧向），
+ * 从 {@code (x, +h)} 到 {@code (x', -h)}；相邻单元共用端点铰接。二维坐标中 {@code x} 为从锚点沿射线的距离，{@code y} 向上。
  * <p>
  * 盒体在 {@link ProjectileModels#faceAlong} 于锚点处留下的坐标系中输出：射线为局部 -Z，剪刀架“上方”（垂直于射线、位于其
  * 竖直平面内）为 +Y，侧向为 +X。拳头也用同一坐标系转向，因此剪刀架平面始终与拳头的上方一致。
@@ -41,47 +47,51 @@ final class SphinxHaoLatticeGeometry {
 
     // ---- Lattice / 剪刀架 ----
 
-    /** Pivot-to-pivot slat length, constant at any extension. / 剪刀片两端铰接间距，任何伸展量下都不变。 */
-    static final double SLAT_LENGTH = 0.45D;
     /**
-     * Fully extended, a cell is at most this fraction of a slat long, so the slats always keep an angle.
-     * 完全伸出时单元长度至多为剪刀片长度的这个比例，剪刀片始终保持夹角。
+     * Pivot-to-pivot slat length 0.30, about the held gun's lattice at its 0.5 display scale (owner screenshots).
+     * 剪刀片两端铰接间距 0.30，约等于手持枪械剪刀架在 0.5 display 缩放下的大小（所有者截图）。
      */
-    static final double OPEN_LIMIT = 0.85D;
-    /** 25-block range / (0.45 x 0.85) = 66 cells; the cap only guards odd values. / 25 格射程约 66 个单元，上限只防异常值。 */
+    static final double SLAT_LENGTH = 0.30D;
+    /** Fixed open angle of every full cell, from the ray. / 每个完整单元与射线之间固定的张开角。 */
+    static final double OPEN_ANGLE_DEGREES = 30.0D;
+    /** Cell length along the ray: L cos 30 = 0.26. / 单元沿射线的长度：L cos 30 = 0.26。 */
+    static final double CELL_LENGTH = SLAT_LENGTH * Math.cos(Math.toRadians(OPEN_ANGLE_DEGREES));
+    /**
+     * Pivot height above / below the ray: a slat rises L sin 30 = 0.15 across one cell, so pivots sit at +/-0.075.
+     * 铰接在射线上下的高度：剪刀片跨越一个单元上升 L sin 30 = 0.15，因此铰接位于 +/-0.075。
+     */
+    static final double HALF_HEIGHT = SLAT_LENGTH * Math.sin(Math.toRadians(OPEN_ANGLE_DEGREES)) * 0.5D;
+    /** 25-block range / 0.26 = 96 cells; the cap only guards odd values. / 25 格射程约 96 个单元，上限只防异常值。 */
     static final int MAX_CELLS = 128;
-    /**
-     * The cell count comes from the eye-to-target distance (fixed per shot, the entity never moves) minus this nominal
-     * eye-to-muzzle reach, so it never changes frame to frame with the moving muzzle.
-     * 单元数取自眼睛到终点的距离（每次射击固定，实体不会移动）减去这一名义的眼睛到枪口距离，因此不会随移动的枪口逐帧变化。
-     */
-    static final double NOMINAL_MUZZLE_REACH = 1.0D;
-    /** In-plane slat width 1/16. / 剪刀片面内宽度 1/16。 */
+    /** Slat cross-section 1/16 x 1/16 (the held slat at its display scale). / 剪刀片截面 1/16 x 1/16（与手持剪刀片一致）。 */
     static final float SLAT_HALF_WIDTH = 0.5F / 16.0F;
-    /** Sideways slat thickness 0.5/16 (flat plastic strips). / 剪刀片侧向厚度 0.5/16（扁平塑料条）。 */
-    static final float SLAT_HALF_THICKNESS = 0.25F / 16.0F;
+    static final float SLAT_HALF_THICKNESS = 0.5F / 16.0F;
     /**
      * Layer centres sit at +/- this sideways: a 0.125/16 gap between the layers, so crossing slats never z-fight.
      * 两层中心位于侧向 +/- 该值：层间留 0.125/16 空隙，交叉的剪刀片永不深度冲突。
      */
     static final float LAYER_OFFSET = SLAT_HALF_THICKNESS + 0.0625F / 16.0F;
     /**
-     * Rivet cube 1.5/16: wider than a slat and than both layers together, so no rivet face is coplanar with a slat face.
-     * 铆钉立方体 1.5/16：比剪刀片宽、也比两层合起来厚，因此铆钉面不会与剪刀片面共面。
+     * Rivet: 1.5/16 square in the lattice plane (the slat cross-section x 1.5), a pin through both layers sideways that
+     * stands 0.125/16 proud of each, so no rivet face is coplanar with a slat face.
+     * 铆钉：剪刀架平面内 1.5/16 见方（剪刀片截面 x 1.5），侧向是一根贯穿两层的销，两侧各凸出 0.125/16，因此铆钉面不会与剪刀片面共面。
      */
     static final float RIVET_HALF_SIZE = 0.75F / 16.0F;
+    static final float RIVET_HALF_LENGTH = LAYER_OFFSET + SLAT_HALF_THICKNESS + 0.125F / 16.0F;
 
     // ---- Muzzle anchor / 枪口锚点 ----
 
     /** Vanilla draws the first-person hand with a fixed 70 degree FOV. / 原版第一人称手部固定使用 70 度视场角绘制。 */
     static final double HAND_FOV_DEGREES = 70.0D;
     /**
-     * First person: the muzzle collar centre, model (8, 11, -3) of sphinx_hao_hand_gun.json, in camera space (right,
+     * First person: the muzzle collar's front-face centre, model (8, 11, -3) of sphinx_hao_hand_gun.json (the same point
+     * and display in the body-only sphinx_hao_hand_gun_fired.json held while the fist is out), in camera space (right,
      * up, forward) at the 70 degree hand FOV: vanilla's equip offset (0.56, -0.52, -0.72) + the firstperson_righthand
      * display (translation (1.5, 2.7, -1)/16, rotation (2, 6, 0) degrees, scale 0.5) applied to (0, 3, -11)/16. Only
      * the screen position (right/forward, up/forward) matters; the forward depth puts the anchor at the drawn gun at
      * FOV 70. Recompute here whenever the display block changes.
-     * 第一人称：sphinx_hao_hand_gun.json 中枪口环中心（模型 (8, 11, -3)）在 70 度手部视场角下的相机空间坐标（右、上、前）：
+     * 第一人称：sphinx_hao_hand_gun.json 中枪口环前表面中心（模型 (8, 11, -3)；拳头在外时手持的只有枪身的
+     * sphinx_hao_hand_gun_fired.json 中该点与 display 完全相同）在 70 度手部视场角下的相机空间坐标（右、上、前）：
      * 原版装备偏移 (0.56, -0.52, -0.72) 加上 firstperson_righthand 显示变换（平移 (1.5, 2.7, -1)/16、旋转 (2, 6, 0) 度、
      * 缩放 0.5）作用于 (0, 3, -11)/16。真正起作用的是屏幕位置（右/前、上/前）；前向深度使 FOV 70 时锚点恰在所绘手枪上。
      * display 块变化时须在此重新计算。
@@ -159,70 +169,66 @@ final class SphinxHaoLatticeGeometry {
     }
 
     /**
-     * Full-extension span for the cell count, from the per-shot eye-to-target distance.
-     * 用于单元数的完全伸出跨度，取自每次射击固定的眼睛到终点距离。
+     * One frame of the lattice over the current span: {@code fullCells} open cells next to the wrist and a
+     * {@code partial} cell (0 <= partial < cell, longer only past the cap) at the muzzle.
+     * 当前跨度上的剪刀架一帧：靠近腕部的 {@code fullCells} 个张开单元，以及枪口处的不完整单元 {@code partial}
+     * （0 <= partial < 单元长，仅在超过上限时更长）。
      */
-    static double fullSpanEstimate(double eyeToTarget, double scale) {
-        return span(eyeToTarget - NOMINAL_MUZZLE_REACH, scale);
-    }
-
-    /**
-     * Cells for a shot: {@code max(1, ceil(fullSpan / (L x 0.85)))}, capped at {@link #MAX_CELLS}; 1 for 0 or NaN.
-     * 一次射击的单元数：{@code max(1, ceil(fullSpan / (L x 0.85)))}，上限 {@link #MAX_CELLS}；0 或 NaN 时为 1。
-     */
-    static int cellCount(double fullSpan) {
-        if (!(fullSpan > 0.0D)) {
-            return 1;
-        }
-        double cells = Math.ceil(fullSpan / (SLAT_LENGTH * OPEN_LIMIT));
-        return cells >= MAX_CELLS ? MAX_CELLS : Math.max(1, (int) cells);
-    }
-
-    /**
-     * Half height of a cell with pitch {@code c}: {@code sqrt(max(0, L^2 - c^2)) / 2}; L/2 for 0 or NaN.
-     * 单元长度为 {@code c} 时的半高：{@code sqrt(max(0, L^2 - c^2)) / 2}；0 或 NaN 时为 L/2。
-     */
-    static double halfHeight(double pitch) {
-        double c = pitch > 0.0D ? pitch : 0.0D;
-        double rest = SLAT_LENGTH * SLAT_LENGTH - c * c;
-        return rest > 0.0D ? Math.sqrt(rest) * 0.5D : 0.0D;
-    }
-
-    /**
-     * One frame of the lattice: {@code cells} cells over the current span.
-     * 剪刀架的一帧：当前跨度上的 {@code cells} 个单元。
-     */
-    record Lattice(int cells, double pitch, double halfHeight) {
-        static Lattice of(double span, int cells) {
-            int count = Math.max(1, cells);
-            double pitch = finiteOrZero(span) / count;
-            return new Lattice(count, pitch, SphinxHaoLatticeGeometry.halfHeight(pitch));
+    record Lattice(double span, int fullCells, double partial) {
+        static Lattice of(double span) {
+            double length = finiteOrZero(span);
+            int cells = (int) Math.min(MAX_CELLS, Math.floor(length / CELL_LENGTH));
+            return new Lattice(length, cells, length - cells * CELL_LENGTH);
         }
 
-        double span() {
-            return cells * pitch;
-        }
-
-        /** End pivot column {@code 0..cells}. / 端点铰接列 {@code 0..cells}。 */
+        /** Full-cell pivot column {@code 0..fullCells}; column 0 is the partial cell's far end. / 完整单元的铰接列。 */
         double pivotX(int pivot) {
-            return pivot * pitch;
+            return partial + pivot * CELL_LENGTH;
         }
 
-        /** Where the two slats of {@code cell} cross (at y = 0). / {@code cell} 两片剪刀片的交叉点（y = 0）。 */
+        /** Where the two slats of full cell {@code cell} cross (at y = 0). / 完整单元两片剪刀片的交叉点（y = 0）。 */
         double crossingX(int cell) {
-            return (cell + 0.5D) * pitch;
+            return partial + (cell + 0.5D) * CELL_LENGTH;
+        }
+
+        boolean hasPartial() {
+            return partial > MIN_SLAT_LENGTH;
+        }
+
+        /**
+         * The partial cell's slat angle from the ray: 90 degrees (folded) at the muzzle, {@link #OPEN_ANGLE_DEGREES}
+         * once a whole cell is out. / 不完整单元剪刀片与射线的夹角：在枪口处为 90 度（折叠），伸出完整一格后为张开角。
+         */
+        double partialAngleDegrees() {
+            return Math.toDegrees(Math.atan2(2.0D * HALF_HEIGHT, partial));
         }
 
         /** Slat A rises from the bottom pivot, slat B falls from the top one. / A 片从下铰接升起，B 片从上铰接落下。 */
-        double slatStartY(boolean layerA) {
-            return layerA ? -halfHeight : halfHeight;
+        static double slatStartY(boolean layerA) {
+            return layerA ? -HALF_HEIGHT : HALF_HEIGHT;
         }
 
-        double slatEndY(boolean layerA) {
+        static double slatEndY(boolean layerA) {
             return -slatStartY(layerA);
         }
 
-        /** Both slats of {@code cell} and the rivet where they cross. / {@code cell} 的两片剪刀片及其交叉处的铆钉。 */
+        /**
+         * The partial cell at the muzzle: both slats over {@code 0..partial} between the shared pivot heights, its
+         * crossing rivet and the two muzzle pivots; nothing while it is empty.
+         * 枪口处的不完整单元：在共用铰接高度之间跨越 {@code 0..partial} 的两片剪刀片、交叉铆钉与枪口处两个铰接；为空时不输出。
+         */
+        void emitPartial(BoxSink slats, BoxSink rivets) {
+            if (!hasPartial()) {
+                return;
+            }
+            emitSlat(0.0D, slatStartY(true), partial, slatEndY(true), LAYER_OFFSET, slats);
+            emitSlat(0.0D, slatStartY(false), partial, slatEndY(false), -LAYER_OFFSET, slats);
+            emitRivet(partial * 0.5D, 0.0D, rivets);
+            emitRivet(0.0D, HALF_HEIGHT, rivets);
+            emitRivet(0.0D, -HALF_HEIGHT, rivets);
+        }
+
+        /** Both slats of full cell {@code cell} and the rivet where they cross. / 完整单元的两片剪刀片及交叉铆钉。 */
         void emitCell(int cell, BoxSink slats, BoxSink rivets) {
             double x0 = pivotX(cell);
             double x1 = pivotX(cell + 1);
@@ -231,12 +237,10 @@ final class SphinxHaoLatticeGeometry {
             emitRivet(crossingX(cell), 0.0D, rivets);
         }
 
-        /** Top and bottom rivets of pivot column {@code pivot}. / 第 {@code pivot} 列的上下铆钉。 */
+        /** Top and bottom rivets of full-cell pivot column {@code pivot}. / 完整单元第 {@code pivot} 列的上下铆钉。 */
         void emitPivotRivets(int pivot, BoxSink rivets) {
-            emitRivet(pivotX(pivot), halfHeight, rivets);
-            if (halfHeight > 0.0D) {
-                emitRivet(pivotX(pivot), -halfHeight, rivets);
-            }
+            emitRivet(pivotX(pivot), HALF_HEIGHT, rivets);
+            emitRivet(pivotX(pivot), -HALF_HEIGHT, rivets);
         }
     }
 
@@ -264,12 +268,12 @@ final class SphinxHaoLatticeGeometry {
                 sink);
     }
 
-    /** An axis-aligned rivet cube spanning both layers. / 跨越两层的轴对齐铆钉立方体。 */
+    /** An axis-aligned rivet pin through both layers. / 贯穿两层的轴对齐铆钉销。 */
     static void emitRivet(double x, double y, BoxSink sink) {
         emitBox(x, y, 0.0D,
                 RIVET_HALF_SIZE, 0.0D, 0.0D,
                 0.0D, RIVET_HALF_SIZE, 0.0D,
-                0.0D, 0.0D, RIVET_HALF_SIZE,
+                0.0D, 0.0D, RIVET_HALF_LENGTH,
                 sink);
     }
 
