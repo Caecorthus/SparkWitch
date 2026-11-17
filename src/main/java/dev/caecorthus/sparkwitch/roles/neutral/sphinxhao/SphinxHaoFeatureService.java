@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.roles.neutral.sphinxhao;
 
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.gun.SphinxHaoGunFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.net.SphinxHaoPayloads;
 import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.net.UseSphinxHaoInfectC2SPayload;
 import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.net.UseSphinxHaoRoarC2SPayload;
@@ -14,7 +15,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
  * both C2S payload types through the idempotent {@link SphinxHaoPayloads#registerTypes()} (common initializer, so both
  * sides know them) and their server receivers (Fabric already runs them on the server thread), the kit and its doors
  * ({@link SphinxHaoKitService}), the hao shop and the hidden coin counter ({@link SphinxHaoShopService}), the two
- * skills with their world tick ({@link SphinxHaoSkillService}), and the per-player state in
+ * skills with their world tick ({@link SphinxHaoSkillService}), the "手"枪's hub ({@link SphinxHaoGunFeatureService}), and the per-player state in
  * {@link SphinxHaoPlayerComponent}: role assignment deals 0 hao with the 60 s / 90 s opening cooldowns to a Sphinx Hao
  * and clears everyone else; Wathe's {@code ResetPlayer} clears it and drops the player from the world state; a real
  * death removes the victim's infection. Never a Witch-skill role: nothing here touches the witch skill panel.
@@ -44,6 +45,8 @@ public final class SphinxHaoFeatureService {
         SphinxHaoKitService.register();
         SphinxHaoShopService.register();
         SphinxHaoSkillService.register();
+        // The "手"枪's world-target veto, death cleanup and replay line. / “手”枪的世界目标否决、死亡清理与回放文本。
+        SphinxHaoGunFeatureService.register();
         RoleAssigned.EVENT.register((player, role) -> {
             if (!(player instanceof ServerPlayerEntity serverPlayer)) {
                 return;
