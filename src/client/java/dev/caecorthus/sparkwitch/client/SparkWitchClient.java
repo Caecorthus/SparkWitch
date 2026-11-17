@@ -30,6 +30,7 @@ import dev.caecorthus.sparkwitch.client.noa.NoaClient;
 import dev.caecorthus.sparkwitch.client.noa.NoaPaintClient;
 import dev.caecorthus.sparkwitch.client.hanna.HannaClient;
 import dev.caecorthus.sparkwitch.client.koko.KokoClient;
+import dev.caecorthus.sparkwitch.client.sphinxhao.SphinxHaoClient;
 import dev.caecorthus.sparkwitch.client.criminalreasoner.CriminalReasonerClientModule;
 import dev.caecorthus.sparkwitch.client.planner.PlannerClient;
 import dev.caecorthus.sparkwitch.client.blind.BlindClient;
@@ -105,6 +106,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.GuardianAngelRules
 import dev.caecorthus.sparkwitch.roles.civilian.guardianangel.UseGuardianAngelSkillC2SPacket;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
 import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRules;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaRules;
 import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerRules;
@@ -217,6 +219,10 @@ public final class SparkWitchClient implements ClientModInitializer {
         // Koko traffic and stream rows plus her live instinct outline (role-owned); going live rides the shared
         // ability key below. / 可可的流量行、直播行与直播期间的本能描边（职业自有）；开播走下方的共享技能键。
         KokoClient.init();
+        // 狮身豪 (Team Jiahao): HUD rows, its keyed infected outline, 《Fade》 for every client and its N key (role-owned);
+        // 嘉豪病毒 rides the shared ability key below. / 狮身豪（嘉豪阵营）：HUD 行、按键型感染者描边、所有客户端的《Fade》与
+        // N 键（职业自有）；嘉豪病毒走下方的共享技能键。
+        SphinxHaoClient.init();
         // 犯罪推理学家 (PR #228): reasoning menu, invisibility key, instinct hide and HUD rows (role-owned); the menu
         // request rides the shared ability key below. / 犯罪推理学家（PR #228）：推理菜单、隐身键、本能屏蔽与 HUD 行（职业自有）；
         // 菜单请求走下方的共享技能键。
@@ -405,6 +411,12 @@ public final class SparkWitchClient implements ClientModInitializer {
                     // Real role only (the Athlete is never a disguise target); the server decides use.
                     // 仅真实职业（运动员不可被伪装）；是否生效由服务端决定。
                     AthleteDashClient.onAbilityKey(client);
+                } else if (SphinxHaoRules.isSphinxHao(role)) {
+                    // 嘉豪病毒, real role only (getRole stays raw): an empty request; the synced cooldown only trims
+                    // obviously refused presses (with a local hint), the server decides use.
+                    // 嘉豪病毒，仅真实职业（getRole 始终是真实身份）：空请求；同步的冷却只过滤明显被拒的按键（并给出本地提示），
+                    // 是否生效由服务端决定。
+                    SphinxHaoClient.onAbilityKey(client);
                 } else if (role != null
                         && dev.caecorthus.sparkwitch.roles.killer.natsume.NatsumeRules.ROLE_ID
                                 .equals(role.identifier())) {

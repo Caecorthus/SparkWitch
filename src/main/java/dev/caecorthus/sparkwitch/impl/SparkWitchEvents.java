@@ -72,6 +72,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.net.SphinxHaoPayloads;
 import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
@@ -336,6 +337,9 @@ public final class SparkWitchEvents {
         // 犯罪推理学家 (neutral, PR #228): right after 泽渡可可; its win phase is ordered after hers.
         // 犯罪推理学家（中立，PR #228）：紧随泽渡可可；其胜负阶段排在她之后。
         CriminalReasonerRuntime.register();
+        // 狮身豪 (Team Jiahao): both C2S payload types, once (idempotent); the server receivers live in its skill services.
+        // 狮身豪（嘉豪阵营）：两个 C2S 数据包类型，只注册一次（幂等）；服务端接收器位于其技能服务中。
+        SphinxHaoPayloads.registerTypes();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.

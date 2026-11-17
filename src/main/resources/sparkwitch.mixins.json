@@ -278,6 +278,7 @@
     "usec.GameFunctionsUsecPsychoArmourMixin",
     "discoverer.DiscovererSprintDrainMixin",
     "koko.KokoSprintDrainMixin",
+    "sphinxhao.PlayerEntitySphinxHaoCrawlMixin",
     "hanna.ServerWorldHannaSilenceMixin",
     "hanna.ServerPlayerInteractionManagerHannaSoundScopeMixin",
     "hanna.ServerPlayNetworkHandlerHannaSoundScopeMixin",
