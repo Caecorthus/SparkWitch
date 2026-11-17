@@ -1578,6 +1578,12 @@
     "sparkwitch:sphinx_hao_loaded": 1
    },
    "model": "sparkwitch:item/sphinx_hao_hand_gun"
+  },
+  {
+   "predicate": {
+    "sparkwitch:sphinx_hao_fired": 1
+   },
+   "model": "sparkwitch:item/sphinx_hao_hand_gun_fired"
   }
  ]
 }

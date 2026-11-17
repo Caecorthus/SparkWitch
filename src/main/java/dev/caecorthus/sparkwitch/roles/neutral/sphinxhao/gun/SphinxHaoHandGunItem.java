@@ -15,6 +15,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 「“手”枪」 ({@code sparkwitch:sphinx_hao_hand_gun}), the Sphinx Hao's spring-fist toy pistol. It holds one fist
@@ -33,6 +34,19 @@ public final class SphinxHaoHandGunItem extends Item {
     static final String TOOLTIP_USAGE_KEY = "item.sparkwitch.sphinx_hao_hand_gun.tooltip.usage";
     /** Local-only recoil after vanilla captured the aim for the use packet. / 仅本地后坐，在原版记录瞄准之后施加。 */
     private static final float RECOIL_PITCH = 3.0F;
+    private static final ClientFire NO_CLIENT_FIRE = player -> {
+    };
+    private static volatile ClientFire clientFire = NO_CLIENT_FIRE;
+
+    /**
+     * Client-only presentation hook: the local client used a loaded gun that passed the client-side gates (the held
+     * model then shows the body only until the fist arrives). Never mutates the stack. / 仅客户端的表现钩子：本地客户端使用
+     * 了通过客户端门槛的已装填手枪（手持模型随即只显示枪身，直到拳头到达）。从不修改物品堆。
+     */
+    @FunctionalInterface
+    public interface ClientFire {
+        void onFire(PlayerEntity player);
+    }
 
     public SphinxHaoHandGunItem(Settings settings) {
         super(settings);
@@ -40,6 +54,11 @@ public final class SphinxHaoHandGunItem extends Item {
 
     public static Settings createSettings() {
         return new Settings().maxCount(1);
+    }
+
+    /** Installed once by the client module. / 由客户端模块安装一次。 */
+    public static void installClientFire(ClientFire hook) {
+        clientFire = Objects.requireNonNull(hook, "hook");
     }
 
     /** Both sides: whether this gun holds a fist. / 双端：这把枪是否装有拳头。 */
@@ -67,6 +86,7 @@ public final class SphinxHaoHandGunItem extends Item {
             }
             if (isLoaded(stack)) {
                 user.setPitch(user.getPitch() - RECOIL_PITCH);
+                clientFire.onFire(user);
             }
             return TypedActionResult.consume(stack);
         }
