@@ -2188,5 +2188,13 @@
   "replay.sparkwitch.planner_recommend": "%s recommended a task to %s",
   "replay.sparkwitch.planner_recommend.self": "%s recommended a task to themselves",
   "replay.sparkwitch.planner_task_slip": "%s handed %s a task slip",
-  "replay.sparkwitch.planner_task_slip.self": "%s rerolled their own tasks with a task slip"
+  "replay.sparkwitch.planner_task_slip.self": "%s rerolled their own tasks with a task slip",
+  "hud.sparkwitch.sphinx_hao.infect.ready": "Hao Virus ready: press %s",
+  "hud.sparkwitch.sphinx_hao.infect.cooldown": "Hao Virus cooling down: %ss",
+  "hud.sparkwitch.sphinx_hao.roar.ready": "Hao to the Sky ready: press %s",
+  "hud.sparkwitch.sphinx_hao.roar.cooldown": "Hao to the Sky cooling down: %ss",
+  "hud.sparkwitch.sphinx_hao.roar.active": "Land-swimming: %ss",
+  "hud.sparkwitch.sphinx_hao.infected": "Infected: %s",
+  "hud.sparkwitch.sphinx_hao.hao": "Hao: %s",
+  "subtitles.sparkwitch.music.sphinx_hao_fade": "Music: Fade"
 }

@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.savior.SaviorRules;
 import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecRules;
 import dev.caecorthus.sparkwitch.roles.killer.hunter.HunterRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherSoundSlot;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.sound.SoundEvent;
@@ -133,6 +134,14 @@ public final class SparkWitchSounds {
     public static SoundEvent BEAR_RYS_T_TINNITUS;
     public static SoundEvent BEAR_EARPLUGS_INSERT;
     /**
+     * 狮身豪's 《Fade》 (id in SphinxHaoRules): a 10 s streamed clip every client plays during a 豪气冲天 window, driven by
+     * the synced world flag (non-attenuated, AMBIENT category: Wathe locks MUSIC).
+     * 狮身豪的《Fade》（id 定义在 SphinxHaoRules）：豪气冲天窗口期间每个客户端播放的 10 秒流式片段，由同步的世界标记驱动
+     * （无衰减，AMBIENT 类别：Wathe 锁定了 MUSIC）。
+     */
+    public static final Identifier SPHINX_HAO_FADE_ID = SphinxHaoRules.FADE_SOUND_ID;
+    public static SoundEvent SPHINX_HAO_FADE;
+    /**
      * The Mini Wither's own events, one per {@link MiniWitherSoundSlot}: variable range like the vanilla events they
      * replaced, and sounds.json defaults each to the same vanilla files and subtitle. Read with {@link #miniWither}.
      * 小凋灵自有事件，每个 {@link MiniWitherSoundSlot} 一个：与被替换的原版事件一样为可变范围，sounds.json 默认指向相同的
@@ -226,6 +235,8 @@ public final class SparkWitchSounds {
             MINI_WITHER.put(slot, Registry.register(Registries.SOUND_EVENT, slot.eventId(),
                     SoundEvent.of(slot.eventId())));
         }
+        SPHINX_HAO_FADE = Registry.register(Registries.SOUND_EVENT, SPHINX_HAO_FADE_ID,
+                SoundEvent.of(SPHINX_HAO_FADE_ID));
     }
 
     /** The registered event of one Mini Wither slot. / 某个小凋灵槽位已注册的事件。 */
