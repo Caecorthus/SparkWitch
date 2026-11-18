@@ -2250,10 +2250,14 @@
   "replay.item_use.sparkwitch.sphinx_hao_hand_gun.hit": "%s landed the §6\"Hand\" Gun§r's fist on %s",
   "replay.item_use.sparkwitch.sphinx_hao_hand_gun.miss": "%s fired the §6\"Hand\" Gun§r but punched no one",
   "item.sparkwitch.defense_vial": "Defense Vial",
-  "item.sparkwitch.defense_vial.tooltip": "Hold 2.5 s to drink for one shield layer, or pour it into a platter for whoever eats there",
+  "item.sparkwitch.defense_vial.tooltip.drink": "Hold right-click %s s to drink: +1 shield layer for the round (%s s cooldown)",
+  "item.sparkwitch.defense_vial.tooltip.pour": "Right-click a platter to pour it in: the next serving taken from it carries the layer",
   "message.sparkwitch.defense_vial.shield": "Shield +1 (30 s before the next use)",
-  "message.sparkwitch.defense_vial.poured": "Vial poured into the platter",
-  "message.sparkwitch.defense_vial.tray_shield": "The vial in that dish shielded you (Shield +1)",
+  "message.sparkwitch.defense_vial.poured": "Vial poured: the next serving from this platter carries a shield layer",
+  "message.sparkwitch.defense_vial.already_poured": "This platter already holds a defense vial",
+  "message.sparkwitch.defense_vial.tray_shield": "The vial in that platter shielded you (Shield +1)",
   "message.sparkwitch.defense_vial.interrupted": "Interrupted",
-  "replay.item.sparkwitch.defense_vial.drink": "%s drank a defense vial and gained a shield layer"
+  "replay.item_use.sparkwitch.defense_vial.drink": "%s drank a defense vial and gained a shield layer",
+  "replay.item_use.sparkwitch.defense_vial.pour": "%s poured a defense vial into a platter",
+  "replay.item_use.sparkwitch.defense_vial.tray_shield": "%s took a serving laced with %s's defense vial and gained a shield layer"
 }

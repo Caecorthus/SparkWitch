@@ -318,7 +318,8 @@
     "sphinxhao.ServerPlayerEntitySphinxHaoGunDropMixin",
     "sphinxhao.ScreenHandlerSphinxHaoGunMixin",
     "sphinxhao.DecoratedPotBlockSphinxHaoGunMixin",
-    "food.SparkFoodPlatterMixin"
+    "defensevial.FoodPlatterBlockDefenseVialPourMixin",
+    "defensevial.GameRecordManagerDefenseVialTakeMixin"
   ],
   "injectors": {
     "defaultRequire": 1
