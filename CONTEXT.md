@@ -2312,8 +2312,10 @@ Current build baseline:
     any blocked non-forced kill, Wathe poison included.
   - Pour (`mixin/defensevial/FoodPlatterBlockDefenseVialPourMixin`, HEAD of `FoodPlatterBlock#onUse`, acts only while
     the vial is held): during a running round a participant pours the vial into a tray; a second vial is refused while
-    one waits. `DefenseVialTrays` keys waiting vials by the tray's block entity (weakly) and the match id, and clears
-    them at `ON_FINISH_INITIALIZE` / `ON_FINISH_FINALIZE`; it is never saved.
+    one waits. A pour is a use: refused while the vial cools down, and it starts the same 30 s cooldown, so a tray never
+    bypasses the drink's cooldown (`finishUsing` also re-checks the cooldown). `DefenseVialTrays` keys waiting vials by
+    dimension, position and match id (a chunk reload keeps them), and clears them at `ON_FINISH_INITIALIZE` /
+    `ON_FINISH_FINALIZE`; it is never saved.
   - Take (`mixin/defensevial/GameRecordManagerDefenseVialTakeMixin`, TAIL of the 5-arg
     `GameRecordManager#recordPlatterTake`): every take path (Wathe, NoellesRoles fine drink / base spirit / Waiter,
     SparkStrength timed bomb / Coroner Waiter, SparkTraits conscience poison) records one platter take, several of them

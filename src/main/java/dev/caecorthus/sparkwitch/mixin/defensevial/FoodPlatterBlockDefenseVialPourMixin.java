@@ -39,10 +39,10 @@ public abstract class FoodPlatterBlockDefenseVialPourMixin {
         if (world.isClient()
                 || !(player instanceof ServerPlayerEntity pourer)
                 || !pourer.getMainHandStack().isOf(SparkWitchItems.defenseVial())
-                || !(world.getBlockEntity(pos) instanceof BeveragePlateBlockEntity plate)) {
+                || !(world.getBlockEntity(pos) instanceof BeveragePlateBlockEntity)) {
             return;
         }
-        if (DefenseVialTrays.tryPour(pourer, plate, pos)) {
+        if (DefenseVialTrays.tryPour(pourer, pos)) {
             cir.setReturnValue(ActionResult.SUCCESS);
         }
     }
