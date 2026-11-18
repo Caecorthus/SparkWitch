@@ -7,7 +7,6 @@ import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaGunService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaLifecycle;
-import dev.caecorthus.sparkwitch.block.service.SparkBedService;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
@@ -341,9 +340,6 @@ public final class SparkWitchEvents {
         // 狮身豪 (Team Jiahao): both C2S payload types, once (idempotent); the server receivers live in its skill services.
         // 狮身豪（嘉豪阵营）：两个 C2S 数据包类型，只注册一次（幂等）；服务端接收器位于其技能服务中。
         SphinxHaoPayloads.registerTypes();
-        // Map-maker beds (PR #239): no win phase, no tick loop; one TaskComplete listener bills the strange bed.
-        // 地图作者用的床（PR #239）：没有胜负阶段、没有 tick 循环；只用一个 TaskComplete 监听器结算奇怪的床。
-        SparkBedService.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.

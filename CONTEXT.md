@@ -2287,7 +2287,8 @@ Current build baseline:
   - Stained Bed (`grey_dirty_bed`): `onUse` answers before Wathe's (so no sleep, scorpion or trap ever lands): Wathe's
     knife/revolver/derringer PASS like on Wathe's beds, anything else shows `block.sparkwitch.grey_dirty_bed.too_dirty`.
     SparkStrength's connected-bed search still walks through it.
-  - Strange Bed (`green_strange_bed`): Wathe's `onUse` unchanged. `block/service/SparkBedService` listens to
+  - Strange Bed (`green_strange_bed`): Wathe's `onUse` unchanged. `block/service/SparkBedService` (registered by
+    `SparkWitchBlocks.register()`, not `SparkWitchEvents`) listens to
     `TaskComplete`: a SLEEP completion whose `getSleepingPosition()` is this bed gives 5 s Slowness I and 5 s Nausea
     (the timer adds up across beds; an admin completion while lying in it counts).
   - Resources: models parent Wathe's `template_trimmed_bed_*`; textures are Wathe's white bed with only the bedding

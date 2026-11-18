@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.registry;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.block.SparkBedBlock;
+import dev.caecorthus.sparkwitch.block.service.SparkBedService;
 import dev.doctor4t.wathe.index.WatheBlockEntities;
 import dev.doctor4t.wathe.index.WatheBlocks;
 import net.minecraft.block.AbstractBlock;
@@ -40,6 +41,9 @@ public final class SparkWitchBlocks {
         }
         greyDirtyBed = registerBed(GREY_DIRTY_BED_ID, SparkBedBlock.Variant.GREY_DIRTY);
         greenStrangeBed = registerBed(GREEN_STRANGE_BED_ID, SparkBedBlock.Variant.GREEN_STRANGE);
+        // The beds own their one listener, so SparkWitchEvents' pinned registration order stays untouched.
+        // 床自带唯一的监听器，因此 SparkWitchEvents 中被固定的注册顺序保持不变。
+        SparkBedService.register();
     }
 
     private static Block registerBed(Identifier id, SparkBedBlock.Variant variant) {
