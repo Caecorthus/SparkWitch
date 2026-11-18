@@ -1,43 +1,43 @@
 package dev.caecorthus.sparkwitch.client.mixin.m1903a4;
 
-import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Combat;
-import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Item;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import dev.caecorthus.sparkwitch.client.m1903a4.M1903A4CrosshairTargeting;
 import dev.doctor4t.wathe.client.gui.CrosshairRenderer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
- * Wathe's revolver crosshair pair for the M1903A4: the normal crosshair while not charging (or charging at nothing),
- * the aimed crosshair while charging with a player on the ray. Both identifiers are Wathe's own sprites, so no new
- * textures are shipped.
- * M1903A4 使用 Wathe 左轮的两张准星：未蓄力（或蓄力但没瞄到人）时用常态准星，蓄力且射线上有玩家时用瞄准准星。两个
- * id 都是 Wathe 自带贴图，不新增资源。
+ * Swaps Wathe's plain crosshair for its target crosshair while a charging M1903A4 points at a visible player (Wathe's
+ * revolver pair, no new textures). The single {@code CROSSHAIR} read is shared with the AXMC, Taser, Hunter shotgun,
+ * Shriek Gun, Clock and Swordfish hints; MixinExtras chains them, and each only answers for its own item. Presentation
+ * only: the server decides every shot.
+ * 当正在蓄力的 M1903A4 指向可见玩家时，把 Wathe 的普通准星换成目标准星（Wathe 左轮的一对准星，不新增贴图）。唯一一次
+ * {@code CROSSHAIR} 读取与 AXMC、电击枪、猎人霰弹枪、啸音铳、时钟和剑鱼提示共用；MixinExtras 会串联它们，且各自只处理
+ * 自己的道具。仅用于展示：每一枪都由服务端判定。
  */
 @Mixin(CrosshairRenderer.class)
 public abstract class M1903A4CrosshairMixin {
-    @Unique
-    private static final Identifier SPARKWITCH$CROSSHAIR = Identifier.of("wathe", "hud/crosshair");
-    @Unique
-    private static final Identifier SPARKWITCH$CROSSHAIR_TARGET = Identifier.of("wathe", "hud/crosshair_target");
-
-    @Redirect(
+    @ModifyExpressionValue(
             method = "renderCrosshair",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawGuiTexture(Lnet/minecraft/util/Identifier;IIII)V")
+            at = @At(
+                    value = "FIELD",
+                    target = "Ldev/doctor4t/wathe/client/gui/CrosshairRenderer;CROSSHAIR:Lnet/minecraft/util/Identifier;"
+            )
     )
-    private static void sparkwitch$sniperCrosshair(DrawContext context, Identifier texture, int x, int y, int width, int height) {
-        PlayerEntity player = MinecraftClient.getInstance().player;
-        if (player != null && player.getMainHandStack().getItem() instanceof M1903A4Item) {
-            context.drawGuiTexture(M1903A4Combat.aimsAtTarget(player)
-                    ? SPARKWITCH$CROSSHAIR_TARGET
-                    : SPARKWITCH$CROSSHAIR, x, y, width, height);
-            return;
-        }
-        context.drawGuiTexture(texture, x, y, width, height);
+    private static Identifier sparkwitch$showM1903a4TargetCrosshair(
+            Identifier original,
+            MinecraftClient client,
+            ClientPlayerEntity player,
+            DrawContext context,
+            RenderTickCounter tickCounter
+    ) {
+        return M1903A4CrosshairTargeting.showsTargetCrosshair(player)
+                ? M1903A4CrosshairTargeting.TARGET_CROSSHAIR
+                : original;
     }
 }
