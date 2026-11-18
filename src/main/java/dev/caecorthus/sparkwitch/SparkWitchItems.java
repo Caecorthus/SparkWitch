@@ -642,11 +642,18 @@ public final class SparkWitchItems {
                 KOKO_LIGHTSTICK_ID,
                 new KokoLightstickItem(KokoLightstickItem.createSettings())
         );
+        // 规划大师's task slip (PR #219), appended last, after 泽渡可可's lightstick, so earlier registration order stays
+        // unchanged. Any holder may use it; maxCount(1). / 规划大师的任务单（PR #219），追加在最后（泽渡可可的应援棒之后），
+        // 以保持既有注册顺序不变。谁拿到都能用；maxCount(1)。
         plannerTaskSlip = Registry.register(
                 Registries.ITEM,
                 PLANNER_TASK_SLIP_ID,
                 new PlannerTaskSlipItem(PlannerTaskSlipItem.createSettings())
         );
+        // 狮身豪's spring-fist hand gun (one fist, loaded flag in a data component, so maxCount(1)) and its fist ammo
+        // (stacks of 16), appended last, after 规划大师's task slip, so earlier registration order stays unchanged.
+        // 狮身豪的弹簧拳头手枪（装一发拳头，装填标记在数据组件中，因此 maxCount(1)）与拳头子弹（16 个一组），追加在最后
+        // （规划大师的任务单之后），以保持既有注册顺序不变。
         sphinxHaoHandGun = Registry.register(
                 Registries.ITEM,
                 SPHINX_HAO_HAND_GUN_ID,
@@ -657,6 +664,10 @@ public final class SparkWitchItems {
                 SPHINX_HAO_FIST_AMMO_ID,
                 new SphinxHaoFistAmmoItem(SphinxHaoFistAmmoItem.createSettings())
         );
+        // The Sniper's M1903A4 (five-round stack in custom data, so maxCount(1)) and its .30-06 rounds (stacks of 64),
+        // appended last, after 狮身豪's fist ammo, so earlier registration order stays unchanged.
+        // 狙击手的 M1903A4（五发弹栈存于自定义数据，因此 maxCount(1)）与 .30-06 子弹（64 个一组），追加在最后
+        // （狮身豪的拳头子弹之后），以保持既有注册顺序不变。
         m1903a4 = Registry.register(
                 Registries.ITEM,
                 M1903A4_ID,
