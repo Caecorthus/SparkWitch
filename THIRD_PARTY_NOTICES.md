@@ -105,3 +105,13 @@ The 16x16 item texture `src/main/resources/assets/sparkwitch/textures/item/spare
 the NoellesRoles master-key texture: it was contributed by Ranmeng-Someya in
 [Caecorthus/SparkWitch#189](https://github.com/Caecorthus/SparkWitch/pull/189) and is covered by
 `LICENSE-TEXTURES.md`.
+
+## NoellesRoles defense vial texture (Defense Vial)
+
+`src/main/resources/assets/sparkwitch/textures/item/defense_vial.png` is redistributed unchanged from
+`assets/noellesroles/textures/item/defense_vial.png` in
+[Caecorthus/NoellesRoles](https://github.com/Caecorthus/NoellesRoles) commit
+`45934af010561e22251cbfcfbc022f87ad581a36`.
+
+The upstream repository licenses this work under LGPL-3.0-or-later. A copy of that license is
+included at `licenses/NoellesRoles-LGPL-3.0-or-later.txt`.

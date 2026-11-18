@@ -103,6 +103,8 @@ public final class SparkWitchItemGroups {
                                     SparkWitchItems.sherryNote(),
                                     // 规划大师's task slip (civilian) / 规划大师的任务单（平民）
                                     SparkWitchItems.plannerTaskSlip(),
+                                    // Defense Vial (any holder, PR #240) / 防御药剂（任何持有者，PR #240）
+                                    SparkWitchItems.defenseVial(),
                                     // Savior (civilian police) / 救世主（平民警察）
                                     SparkWitchItems.saviorPistol(),
                                     SparkWitchItems.saviorLightsaber(),

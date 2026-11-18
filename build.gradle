@@ -1274,6 +1274,20 @@ def watheCommonMixinContracts = [
                 providerEntry: "dev/doctor4t/wathe/game/GameFunctions.class",
                 providerMethod: "killPlayer",
                 providerDescriptor: "(Lnet/minecraft/class_3222;ZLnet/minecraft/class_3222;Lnet/minecraft/class_2960;Z)V"
+        ],
+        [
+                // Defense Vial (PR #240): TAIL of Wathe's 5-arg platter-take record, the one call every take path
+                // (Wathe, NoellesRoles, SparkStrength, SparkTraits) makes; its 4-arg overload delegates here.
+                // 防御药剂（PR #240）：挂在 Wathe 五参餐盘取用记录的 TAIL，所有取用路径（Wathe、NoellesRoles、
+                // SparkStrength、SparkTraits）都会调用它；四参重载委托到这里。
+                configName: "defensevial.GameRecordManagerDefenseVialTakeMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/mixin/defensevial/GameRecordManagerDefenseVialTakeMixin.class",
+                handler: "sparkwitch\$shieldDefenseVialTaker",
+                annotationDesc: "Lorg/spongepowered/asm/mixin/injection/Inject;",
+                selector: "recordPlatterTake(Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;Lnet/minecraft/class_2338;Ljava/lang/String;Lnet/minecraft/class_2487;)V",
+                providerEntry: "dev/doctor4t/wathe/record/GameRecordManager.class",
+                providerMethod: "recordPlatterTake",
+                providerDescriptor: "(Lnet/minecraft/class_3222;Lnet/minecraft/class_2960;Lnet/minecraft/class_2338;Ljava/lang/String;Lnet/minecraft/class_2487;)V"
         ]
 ]
 

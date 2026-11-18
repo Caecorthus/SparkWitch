@@ -5,6 +5,8 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.WitherGoheiItem
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 import dev.caecorthus.sparkwitch.registry.SparkWitchBlocks;
 
+import dev.caecorthus.sparkwitch.item.defense.DefenseVialItem;
+import dev.caecorthus.sparkwitch.item.defense.DefenseVialRules;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
@@ -168,6 +170,7 @@ public final class SparkWitchItems {
     public static final Identifier PLANNER_TASK_SLIP_ID = PlannerRules.TASK_SLIP_ID;
     public static final Identifier SPHINX_HAO_HAND_GUN_ID = SphinxHaoRules.HAND_GUN_ID;
     public static final Identifier SPHINX_HAO_FIST_AMMO_ID = SphinxHaoRules.FIST_AMMO_ID;
+    public static final Identifier DEFENSE_VIAL_ID = DefenseVialRules.ITEM_ID;
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -241,6 +244,7 @@ public final class SparkWitchItems {
     private static Item plannerTaskSlip;
     private static Item sphinxHaoHandGun;
     private static Item sphinxHaoFistAmmo;
+    private static Item defenseVial;
 
     private static boolean registered;
 
@@ -659,6 +663,13 @@ public final class SparkWitchItems {
                 SPHINX_HAO_FIST_AMMO_ID,
                 new SphinxHaoFistAmmoItem(SphinxHaoFistAmmoItem.createSettings())
         );
+        // Defense Vial (PR #240, any holder), appended last so earlier registration order stays unchanged.
+        // 防御药剂（PR #240，任何持有者可用），追加在最后，以保持既有注册顺序不变。
+        defenseVial = Registry.register(
+                Registries.ITEM,
+                DEFENSE_VIAL_ID,
+                new DefenseVialItem(DefenseVialItem.createSettings())
+        );
         // Map-maker beds (PR #239): blocks plus their BlockItems, appended after every existing item so earlier
         // registration order stays unchanged.
         // 地图作者用的床（PR #239）：方块及其 BlockItem，追加在所有既有物品之后，以保持既有注册顺序不变。
@@ -736,6 +747,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return kokoLightstick;
+    }
+
+    public static Item defenseVial() {
+        if (defenseVial == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return defenseVial;
     }
 
     public static Item plannerTaskSlip() {
