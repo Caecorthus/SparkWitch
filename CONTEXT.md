@@ -1697,7 +1697,10 @@ Current build baseline:
     drones; `m1903a4Absorber` is the read-only preview). `RangedSmokeCarve.ray` cuts a BEAR smoke tunnel and white
     smoke marks the path. One non-forced `killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN)`, so BEAR
     ricochet, the Bodyguard vest, Knight duel rules and every killPlayer veto apply. No aim payload: the shot uses the
-    server's current rotation, which can trail the client's release by about a tick. No sleeper fallback.
+    server's current rotation, which can trail the client's release by about a tick. No sleeper fallback. Inherited from
+    the fist's seams, not resolved here: the player is picked on rewound volumes while the puppet and device steps
+    measure current boxes, a crow is taken before the owner's eligibility is asked, and SparkStrength's HEAD hook on
+    `onM1903A4Fired` (Partygoer, drone) runs before SparkWitch's own nearer device, ending the smoke at the ray's end.
   - Replay and sounds: the shot is recorded before the kill (`hit` flag; `replay.item_use.sparkwitch.m1903a4.shot` /
     `.miss` / `.reload`). `M1903A4Gunplay` (server only) plays open bolt on the first load, the seat sound 0.8 s per
     round, the closing bolt when a 2 s reload window lapses, the shot (mono, positional) and the bolt 1 s later; its
@@ -3996,7 +3999,8 @@ the Raven on top of the host's own alive test:
 
 Stowaway rules (owner spec 2026-11-02, PR #178). Profile: Wathe-native neutral, FAKE mood with tasks (tasks pay
 nothing), infinite stamina (`maxSprintTime(-1)`), no round clock, no appearance condition; registered right before
-the Insider and guessed right after it and 狮身豪 (which follows the Insider since 2026-11-17), before the promotion tail.
+the Insider and guessed right after it, 狮身豪 (which follows the Insider since 2026-11-17) and the Sniper (which follows
+狮身豪 since PR #245), before the promotion tail.
 - Loadout: a SparkWitch `ON_FINISH_INITIALIZE` phase after the default one strips every room key and role letter
   (crafting grid included) and grants one lockpick.
 - Settlement: the Stowaway never counts as alive for any win, block or moment. Every `CheckWinCondition` listener
@@ -4622,9 +4626,10 @@ through that answer. The shop is rebuilt on both sides, gated on the exact role 
 clear, revolver 150 and crowbar 50, each stock 1, then restore. The tablet is not sold: the Insider is in SFA
 `PoliceRoles`, so SparkStrength issues it a free tablet at round start on the police channel. That also makes it a
 SparkStrength police elector for meetings and votes (`TabletChannelResolver.isPoliceElector`).
-Team Jiahao (every Corrupt Cop, every Insider and, since 2026-11-17, every 狮身豪, by current role) applies only in a
-round that has a SparkWitch partner, an Insider or a 狮身豪 (`InsiderParticipation.isPartnerRole`: any role-map entry
-with a partner role, online or not, dead or alive); without one, all three wraps below
+Team Jiahao (every Corrupt Cop, every Insider and, since 2026-11-17, every 狮身豪, and since PR #245 every Sniper, by
+current role) applies only in a round that has a SparkWitch team member other than the Corrupt Cop, an Insider, a 狮身豪
+or a Sniper (`JiahaoTeamWinRules.Kind.partner()`: any role-map entry of such a kind, online or not, dead or alive; the
+Sniper counts here although `InsiderParticipation.isPartnerRole` stays Insider or 狮身豪); without one, all three wraps below
 return NoellesRoles' own value, so several forced Corrupt Cops behave exactly as in NoellesRoles (same single
 winner); only the end title changed (owner D7, 2026-11-04, overturning that part of C13): a lone Corrupt Cop win also
 reads "嘉豪胜利！", over NoellesRoles' own Corrupt Cop subtitle. With a partner it wins inside NoellesRoles' Corrupt Cop win branch, so NoellesRoles' win order stays Vulture > Survival Master > Pathogen > Jester > Taotie > Team Jiahao >
@@ -4639,9 +4644,9 @@ NoellesRoles' own. Wathe titles a neutral win by the first winning round-end row
 `mixin/insider/GameRoundEndComponentJiahaoTitleMixin`, just before the explicit-winner sync, handles a Team
 Jiahao win (a winning team row in a round with a partner): it marks every other team row as a winner, offline
 `LEFT` / `LEFT_DEAD` rows included, then moves a row of the lead partner's kind first (`JiahaoTeamWinRules.leadPartner`:
-the primary's kind; with every partner offline, an Insider if the round has one, else 狮身豪; the row the win named,
-else any; the other partner kind only when none exists), so a round with Insiders only still leads with an Insider
-row. The end
+the primary's kind; with every partner offline, an Insider if the round has one, else 狮身豪, else a Sniper; the row
+the win named, else any; the other partner kinds, in `Kind` order, only when none exists), so a round with Insiders
+only still leads with an Insider row. The end
 screen reads "嘉豪胜利！" over "整列列车的人都被嘉豪们豪完了", and Wathe's `didWin` and `GameRecordManager.endMatch`
 read the same rows. Every other win keeps Wathe's rows. Team Jiahao has its own faction color,
 `InsiderRules.TEAM_JIAHAO_COLOR` (tuhao gold `0xFFC125`), apart from the Insider's mint and the Corrupt Cop's navy:
