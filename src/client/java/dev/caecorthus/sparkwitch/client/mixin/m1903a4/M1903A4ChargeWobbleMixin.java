@@ -1,14 +1,17 @@
 package dev.caecorthus.sparkwitch.client.mixin.m1903a4;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
+import dev.caecorthus.sparkwitch.client.m1903a4.M1903A4FirstPersonRules;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Hand;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Slice;
 
 /**
  * Vanilla's bow sway keeps sampling {@code sin((useTicks - 0.1) * 1.3)} while the bow stays drawn, and since
@@ -21,29 +24,33 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public abstract class M1903A4ChargeWobbleMixin {
 
     /**
-     * The tremble is the only translate in {@code renderFirstPersonItem} whose x and z are zero with a tiny y, so it
-     * can be told apart without touching any other sway or equip offset.
-     * 这段抖动是该渲染方法里唯一 x、z 为 0 且 y 极小的位移，因此可以与其他摆动、装备偏移区分开。
+     * Only the bow sway is wrapped: the slice starts at the method's single {@code 20.0F} (the bow case's
+     * {@code useTicks / 20.0F} pull), and the sway is the first {@code translate} after it (vanilla 1.21.1: translate
+     * ordinal 6, pinned by {@code M1903A4ClientContractTest}). {@code @WrapOperation} chains with other mods' wraps on the
+     * same call, and the gate reads the method's own player, hand and stack, so the other hand and every other rendered
+     * stack always make the original call.
+     * 只包装弓的摆动：切片从方法中唯一的 {@code 20.0F}（弓分支 {@code useTicks / 20.0F} 的拉弓进度）开始，摆动是其后第一个
+     * {@code translate}（原版 1.21.1 中为第 6 序号的 translate，由 {@code M1903A4ClientContractTest} 固定）。
+     * {@code @WrapOperation} 可与其他模组对同一调用的包装串联，判定读取的是方法自身的玩家、手与物品，因此另一只手以及其他
+     * 任何被渲染的物品都会执行原调用。
      */
-    @Redirect(
+    @WrapOperation(
             method = "renderFirstPersonItem",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;translate(FFF)V")
+            slice = @Slice(from = @At(value = "CONSTANT", args = "floatValue=20.0F")),
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/util/math/MatrixStack;translate(FFF)V",
+                    ordinal = 0
+            )
     )
-    private void sparkwitch$skipFullChargeWobble(MatrixStack matrices, float x, float y, float z) {
-        if (sparkwitch$isDrawnM1903a4()) {
-            if (x == 0.0F && z == 0.0F && y != 0.0F && Math.abs(y) <= 0.0045F) {
-                return;
-            }
+    private void sparkwitch$holdFullChargeSteady(MatrixStack matrices, float x, float y, float z,
+                                                 Operation<Void> original, AbstractClientPlayerEntity player,
+                                                 float tickDelta, float pitch, Hand hand, float swingProgress,
+                                                 ItemStack item) {
+        if (M1903A4FirstPersonRules.holdsSteady(item.isOf(SparkWitchItems.m1903a4()), player.isUsingItem(),
+                player.getActiveHand() == hand, player.getItemUseTime())) {
+            return;
         }
-        matrices.translate(x, y, z);
-    }
-
-    @Unique
-    private boolean sparkwitch$isDrawnM1903a4() {
-        ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        return player != null
-                && player.isUsingItem()
-                && player.getItemUseTime() >= 20
-                && player.getActiveItem().isOf(SparkWitchItems.m1903a4());
+        original.call(matrices, x, y, z);
     }
 }
