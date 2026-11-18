@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.usec.UsecFeatureService;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaGunService;
 import dev.caecorthus.sparkwitch.roles.civilian.emma.EmmaLifecycle;
+import dev.caecorthus.sparkwitch.block.service.SparkBedService;
 import dev.caecorthus.sparkwitch.compat.SparkTraitsWraithBridge;
 import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
@@ -72,6 +73,7 @@ import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.recruit.RecruitRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.hanna.HannaFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoFeatureService;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.net.SphinxHaoPayloads;
 import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerRuntime;
 import dev.caecorthus.sparkwitch.roles.civilian.noa.NoaFeatureService;
 import dev.caecorthus.sparkwitch.roles.civilian.perfumer.PerfumerShopService;
@@ -336,9 +338,12 @@ public final class SparkWitchEvents {
         // 犯罪推理学家 (neutral, PR #228): right after 泽渡可可; its win phase is ordered after hers.
         // 犯罪推理学家（中立，PR #228）：紧随泽渡可可；其胜负阶段排在她之后。
         CriminalReasonerRuntime.register();
-        // Beds (2.0.7): no win phase, no tick loop; it only listens to TaskComplete to punish the strange one.
-        // 床（2.0.7）：没有胜负阶段、没有 tick 循环；只监听 TaskComplete 来惩罚那张奇怪的床。
-        dev.caecorthus.sparkwitch.block.service.SparkBedService.register();
+        // 狮身豪 (Team Jiahao): both C2S payload types, once (idempotent); the server receivers live in its skill services.
+        // 狮身豪（嘉豪阵营）：两个 C2S 数据包类型，只注册一次（幂等）；服务端接收器位于其技能服务中。
+        SphinxHaoPayloads.registerTypes();
+        // Map-maker beds (PR #239): no win phase, no tick loop; one TaskComplete listener bills the strange bed.
+        // 地图作者用的床（PR #239）：没有胜负阶段、没有 tick 循环；只用一个 TaskComplete 监听器结算奇怪的床。
+        SparkBedService.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.
@@ -463,6 +468,10 @@ public final class SparkWitchEvents {
         // which stays last. / 规划大师（平民，PR #219）：各服务的顺序由其注册中心固定；注册在橘雪莉之后、USEC 之前，USEC
         // 保持最后。
         dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerFeatureService.register();
+        // 狮身豪 Sphinx Hao (Team Jiahao): its hub fixes the order of its server services (kit, doors, shop, skills);
+        // registered after 规划大师 and before USEC, which stays last. / 狮身豪（嘉豪阵营）：各服务端服务（开局物品、门、
+        // 商店、技能）的顺序由其注册中心固定；注册在规划大师之后、USEC 之前，USEC 保持最后。
+        dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoFeatureService.register();
         // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
         // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
         UsecFeatureService.register();

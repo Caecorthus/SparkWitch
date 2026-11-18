@@ -37,6 +37,8 @@ import dev.caecorthus.sparkwitch.roles.killer.dominator.DominatorPlayerComponent
 import dev.caecorthus.sparkwitch.roles.killer.hiro.returning.HiroReturnComponent;
 import dev.caecorthus.sparkwitch.roles.killer.hiro.witchification.HiroWitchificationComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoPlayerComponent;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoWorldComponent;
 import dev.caecorthus.sparkwitch.roles.neutral.criminalreasoner.CriminalReasonerComponent;
 import dev.caecorthus.sparkwitch.roles.civilian.planner.PlannerComponent;
 import dev.caecorthus.sparkwitch.roles.killer.specter.SpecterCowardiceComponent;
@@ -323,6 +325,12 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         registry.beginRegistration(PlayerEntity.class, PlannerComponent.KEY)
                 .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
                 .end(PlannerComponent::new);
+        // 狮身豪 Sphinx Hao (2026-11-17): hao and both skills' ready ticks; synced to the owner only; appended last, after
+        // 规划大师's component.
+        // 狮身豪（2026-11-17）：豪度值与两个技能的就绪刻；只同步给本人；追加在最后，位于规划大师的组件之后。
+        registry.beginRegistration(PlayerEntity.class, SphinxHaoPlayerComponent.KEY)
+                .respawnStrategy(RespawnCopyStrategy.NEVER_COPY)
+                .end(SphinxHaoPlayerComponent::new);
     }
 
     @Override
@@ -344,5 +352,8 @@ public final class SparkWitchComponents implements EntityComponentInitializer, W
         // Charon (PR #202) Soul Moment, appended last, after the Medium's seance.
         // 卡戎（PR #202）亡魂时刻，追加在最后，位于通灵师通灵组件之后。
         registry.register(FerrymanMomentWorldComponent.KEY, FerrymanMomentWorldComponent::new);
+        // 狮身豪 Sphinx Hao (2026-11-17) infections and 豪气冲天 window, appended last, after the Charon's Soul Moment.
+        // 狮身豪（2026-11-17）的感染与豪气冲天窗口，追加在最后，位于卡戎亡魂时刻之后。
+        registry.register(SphinxHaoWorldComponent.KEY, SphinxHaoWorldComponent::new);
     }
 }

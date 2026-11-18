@@ -191,7 +191,7 @@ def compatibilityBaselines = [
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
                 version: "2.0.0",
-                sha256: "b818a95be88f3eb9f0450ffa05ab89fca7fbd58f15b7e6a67466701ca743c30c",
+                sha256: "21e662034bc4f0ec80d6c866100e1df49982d38a1da7a778e0481d2d9a18d48c",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
@@ -425,6 +425,19 @@ def watheClientMixinContracts = [
                 configName: "hanna.HannaInstinctVetoMixin",
                 mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/hanna/HannaInstinctVetoMixin.class",
                 handler: "sparkwitch\$vetoFloatingHannaInstinct",
+                annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
+                selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
+                providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",
+                providerMethod: "getInstinctHighlight",
+                providerDescriptor: "(Lnet/minecraft/class_1297;)I"
+        ],
+        [
+                // 豪气冲天's crawlers are never visible to instinct for the window (狮身豪, owner 2026-11-17): a
+                // veto-only wrap at Hanna's priority. / 豪气冲天窗口内陆泳者永不被本能透视（狮身豪，所有者 2026-11-17）：
+                // 与汉娜同优先级的纯否决包装。
+                configName: "sphinxhao.SphinxHaoInstinctVetoMixin",
+                mixinEntry: "dev/caecorthus/sparkwitch/client/mixin/sphinxhao/SphinxHaoInstinctVetoMixin.class",
+                handler: "sparkwitch\$vetoSphinxHaoCrawlerInstinct",
                 annotationDesc: "Lcom/llamalad7/mixinextras/injector/wrapmethod/WrapMethod;",
                 selector: "getInstinctHighlight(Lnet/minecraft/class_1297;)I",
                 providerEntry: "dev/doctor4t/wathe/client/WatheClient.class",

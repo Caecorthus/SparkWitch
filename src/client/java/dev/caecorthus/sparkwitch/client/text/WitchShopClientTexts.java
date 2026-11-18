@@ -2,6 +2,8 @@ package dev.caecorthus.sparkwitch.client.text;
 
 import dev.caecorthus.sparkwitch.client.timestealer.TimeStealerShopTexts;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
 import dev.caecorthus.sparkwitch.roles.witch.grandwitch.GrandWitchRules;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.RiftwalkerRules;
 import dev.doctor4t.wathe.util.ShopEntry;
@@ -12,9 +14,9 @@ import net.minecraft.util.Formatting;
 /**
  * Client-only shop labels for the non-coin currencies: mana-priced entries (Grand Witch spells and the Riftwalker's
  * Rift Gate), Time-Stamp-priced Time Stealer entries (delegated to the role-owned {@link TimeStealerShopTexts}) and
- * 泽渡可可's traffic-priced lightstick, so none shows as 0 coins. Presentation only: the server alone validates and charges every purchase.
+ * 泽渡可可's traffic-priced lightstick and 狮身豪's hao-priced fist ammo, so none shows as 0 coins. Presentation only: the server alone validates and charges every purchase.
  * 非金币货币的客户端商店文本：魔力定价商品（大魔女法术与隙行者的裂隙门）、窃时者的时光邮票商品（委托给职业自有的
- * {@link TimeStealerShopTexts}），以及泽渡可可以流量定价的应援棒，避免显示成 0 金币。仅用于展示：每次购买的校验与扣费只由服务端完成。
+ * {@link TimeStealerShopTexts}），以及泽渡可可以流量定价的应援棒与狮身豪以豪度值定价的拳头子弹，避免显示成 0 金币。仅用于展示：每次购买的校验与扣费只由服务端完成。
  */
 public final class WitchShopClientTexts {
     private WitchShopClientTexts() {
@@ -36,6 +38,18 @@ public final class WitchShopClientTexts {
         if (KokoRules.LIGHTSTICK_SHOP_ENTRY_ID.equals(entry.id())) {
             return Text.translatable("gui.sparkwitch.shop.traffic_price", KokoRules.LIGHTSTICK_PRICE)
                     .withColor(KokoRules.COLOR);
+        }
+        // 狮身豪's fist ammo: a 0-coin entry charged 10 hao in its onBuy; its id is unique to its shop.
+        // 狮身豪的拳头子弹：0 金币商品，在 onBuy 中扣除 10 豪度值；该 id 只出现在它的商店。
+        if (SphinxHaoRules.FIST_AMMO_SHOP_ENTRY_ID.equals(entry.id())) {
+            return Text.translatable("gui.sparkwitch.shop.hao_price", SphinxHaoRules.FIST_AMMO_PRICE)
+                    .withColor(SphinxHaoRules.COLOR);
+        }
+        // 狮身豪's fist ammo: a 0-coin entry charged 10 hao in its onBuy; its id is unique to its shop.
+        // 狮身豪的拳头子弹：0 金币商品，在 onBuy 中扣除 10 豪度值；该 id 只出现在它的商店。
+        if (SphinxHaoRules.FIST_AMMO_SHOP_ENTRY_ID.equals(entry.id())) {
+            return Text.translatable("gui.sparkwitch.shop.hao_price", SphinxHaoRules.FIST_AMMO_PRICE)
+                    .withColor(SphinxHaoRules.COLOR);
         }
         GrandWitchRules.GrandWitchSpell spell = GrandWitchRules.GrandWitchSpell.fromEntryId(entry.id());
         if (spell == null) {

@@ -92,10 +92,12 @@ public final class FiendRules {
 
     /**
      * Owner decision D5: every gun counts as GUN (revolver, derringer and the Hunter shotgun share
-     * {@code wathe:gun_shot}; plus the Demon Hunter pistol and the Savior pistol, PR #200). A {@code wathe:knife_stab}
+     * {@code wathe:gun_shot}; plus the Demon Hunter pistol, the Savior pistol, PR #200, and the 狮身豪 "手"枪 fist,
+     * 2026-11-17). A {@code wathe:knife_stab}
      * counts only when the attacker holds a knife in hand. Bat and Ceremonial Sword throat-cut map to BAT and SWORD, and
      * the Savior lightsaber (bat attributes) to BAT; everything else is NONE.
-     * 所有者决定 D5：所有枪械都算 GUN（左轮、短管手枪与猎人霰弹枪共用 {@code wathe:gun_shot}，另加猎魔枪与救世主手枪，PR #200）。
+     * 所有者决定 D5：所有枪械都算 GUN（左轮、短管手枪与猎人霰弹枪共用 {@code wathe:gun_shot}，另加猎魔枪、救世主手枪（PR #200）
+     * 与狮身豪“手”枪的拳头（2026-11-17））。
      * {@code wathe:knife_stab} 仅在攻击者手持刀时算 KNIFE。球棒与仪礼剑封喉分别为 BAT 与 SWORD，救世主光剑（球棒属性）算 BAT，
      * 其余均为 NONE。
      */
@@ -104,7 +106,8 @@ public final class FiendRules {
             return Hit.NONE;
         }
         if (GameConstants.DeathReasons.GUN.equals(deathReason) || DEMON_HUNTER_SHOT_ID.equals(deathReason)
-                || SaviorRules.PISTOL_DEATH_REASON.equals(deathReason)) {
+                || SaviorRules.PISTOL_DEATH_REASON.equals(deathReason)
+                || SparkWitchDeathReasons.SPHINX_HAO_FIST.equals(deathReason)) {
             return Hit.GUN;
         }
         if (GameConstants.DeathReasons.KNIFE.equals(deathReason)) {

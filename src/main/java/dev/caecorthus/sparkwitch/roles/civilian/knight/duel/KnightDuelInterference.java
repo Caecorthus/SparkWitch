@@ -52,6 +52,7 @@ public final class KnightDuelInterference {
             SparkWitchDeathReasons.FIEND_DEVOURED,
             SparkWitchDeathReasons.CRIMSON_WITHER_SKULL,
             SparkWitchDeathReasons.STRANGLED,
+            SparkWitchDeathReasons.SPHINX_HAO_FIST,
             // Savior pistol and lightsaber: terminal, but still a player's kill. / 救世主手枪与光剑：终结死因，但仍是玩家击杀。
             SaviorRules.PISTOL_DEATH_REASON,
             SaviorRules.LIGHTSABER_DEATH_REASON,
