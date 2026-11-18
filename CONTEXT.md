@@ -79,7 +79,7 @@ wins, co-wins and blocks wins exactly as the Insider does, has fake tasks and no
 infects the player in its crosshair within 3 blocks (嘉豪病毒: 60 s opening cooldown, 10 s after each infection; the
 victim privately reads 「你感觉自己有点豪」 15–25 s later), and its secondary key (N) opens 豪气冲天 (90 s opening
 cooldown, then 30 s from the window's end): for 10 s it and every living infected player crawl on land, hidden from
-every instinct, while 《Fade》 plays for every client; it earns 1 hao per infected crawler, and the window's end clears
+every instinct, while 《Fade》 plays for every client; it earns (infected crawlers + 1) x 5 hao, and the window's end clears
 every infection. Its shop sells 拳头子弹 for 10 hao; a loaded gun fires one fist 25 blocks whose hit is an ordinary
 kill (a kill gives 3 s Glowing and 10 s Speed I; anything else +5 hao and 3 s Speed III).
 Since 2026-11-04 the witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are real Wathe
@@ -1508,8 +1508,9 @@ Current build baseline:
     `recordSkillUse`.
   - 豪气冲天 (secondary key N, empty `sparkwitch:use_sphinx_hao_roar`): cooling → one window per world (`BUSY`, a
     forced second 狮身豪) → Fear → crawlers = the caster plus every infected player online in that world, playing and
-    alive, not spectating or creative (so no Rift Gate occupant) and not swallowed → +1 hao each (`roarHao`; the caster
-    never counts, owner Q4; 0 infected still casts) → `startRoar(endTick = now + 200)`, the roar ready tick set to
+    alive, not spectating or creative (so no Rift Gate occupant) and not swallowed → (infected crawlers + 1) x 5 hao (`roarHao`,
+    owner 2026-11-18; the caster never counts as a crawler, owner Q4, and the +1 is its share, so 0 infected still casts
+    and pays 5) → `startRoar(endTick = now + 200)`, the roar ready tick set to
     end + 600 → pending notices shown now → `recordSkillUse` with the count and hao.
   - Window lifecycle (`END_WORLD_TICK`, `SphinxHaoSkillRules.roarEnd`): the round leaving ACTIVE or the caster going
     offline, dying or losing the role ends it early (ready = now + 600); the full 200 ticks end it at its end tick
@@ -1544,8 +1545,8 @@ Current build baseline:
     Seeker remote view, Kidnapper control, active Wraith; PASS, nothing spent); LOAD (empty with a fist in the
     inventory: one consumed, none in creative, 20-tick cooldown, shooter-only crossbow-loading sound); DRY (empty, no
     ammo: shooter-only dispenser click and `message.sparkwitch.sphinx_hao_hand_gun.no_ammo`); FIRE.
-  - Fire path: SparkTraits `blocksWeaponAction` first (a blocked shot costs nothing); then unload and the 20-tick
-    cooldown; the rewound eye ray `ControlExpertTaserTargeting.findTarget` (25 blocks, cut at the first collider block,
+  - Fire path: SparkTraits `blocksWeaponAction` first (a blocked shot costs nothing); then unload and the 100-tick (5 s,
+    owner 2026-11-18) cooldown; the rewound eye ray `ControlExpertTaserTargeting.findTarget` (25 blocks, cut at the first collider block,
     `PlayerHitboxHistory.hitVolumes` grown by `HIT_MARGIN` 0.2) over eligible players only (never the shooter,
     `RoundParticipants.ROLE_HOLDER`, SFA `canAffectPlayer(…, sparkwitch:sphinx_hao_fist)`, not Last Escape, Vendetta
     isolation; ineligible players are transparent). Targets (`resolve`, the Hunter shotgun's centre-ray order, reads
@@ -5198,7 +5199,7 @@ deliberate and kept:
 Disruptor, Shock Device, shotgun empty reload, Time Pocket Watch, toll bell, Angler rod and edible fish, Holy Flash,
 White Cane (its tap writes the 5 s window plus the 10 s cooldown), Ninja shuriken, knife and Grappling Hook (the 10 s
 written when a hook cycle ends), Feather Blade, Knockout Drug, Ceremonial Sword dash, Fire Poker, Shriek Gun,
-USEC rifle (the 2 s bolt), the 狮身豪 hand gun (1 s after a shot or a load, the longer of the two), and the 1 s
+USEC rifle (the 2 s bolt), the 狮身豪 hand gun (5 s after a shot, 1 s after a load, the longer of the two), and the 1 s
 anti-repeat writes of the potion launcher and the Rift Gate, which no current
 consumer reaches) and of NoellesRoles items with a public constant (Antidote, Repair Tool, Poison Needle) plus the
 200-tick neutral master key; round-start cooldowns are not nominals, and Wathe items fall through to Wathe's own

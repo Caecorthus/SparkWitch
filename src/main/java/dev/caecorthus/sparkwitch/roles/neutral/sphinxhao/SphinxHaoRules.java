@@ -73,14 +73,16 @@ public final class SphinxHaoRules {
     public static final int ROAR_INITIAL_COOLDOWN_TICKS = 90 * 20;
     public static final int ROAR_COOLDOWN_TICKS = 30 * 20;
     public static final int ROAR_TICKS = 10 * 20;
-    public static final int ROAR_HAO_PER_INFECTED = 1;
+    /** Hao per 豪气冲天 share: (infected crawlers + 1) x 5 (owner 2026-11-18). / 每份豪度值：（被感染陆泳者 + 1）× 5（所有者 2026-11-18）。 */
+    public static final int ROAR_HAO_PER_SHARE = 5;
     /** Client fade-out of 《Fade》 when the window ends early. / 窗口提前结束时《Fade》的客户端淡出刻数。 */
     public static final int FADE_OUT_TICKS = 10;
 
     // Shop and hand gun / 商店与手枪
     public static final int FIST_AMMO_PRICE = 10;
     public static final double GUN_RANGE = 25.0;
-    public static final int GUN_FIRE_COOLDOWN_TICKS = 20;
+    /** 5 s after a shot (owner 2026-11-18); loading keeps its own 1 s. / 射击后 5 秒（所有者 2026-11-18）；装填仍为 1 秒。 */
+    public static final int GUN_FIRE_COOLDOWN_TICKS = 5 * 20;
     public static final int GUN_LOAD_COOLDOWN_TICKS = 20;
     /** A shot that kills nobody: +5 hao and Speed III for 3 s. / 未击杀：+5 豪度值与 3 秒速度 III。 */
     public static final int MISS_HAO = 5;
@@ -118,10 +120,12 @@ public final class SphinxHaoRules {
     }
 
     /**
-     * Hao paid when 豪气冲天 starts: one per living infected crawler; the caster never counts (owner Q4).
-     * 豪气冲天开始时支付的豪度值：每名存活的被感染陆泳者一点；施法者从不计入（所有者 Q4）。
+     * Hao paid when 豪气冲天 starts: (living infected crawlers + 1) x 5, so a lone cast still pays 5 (owner 2026-11-18).
+     * The crawler count never includes the caster (owner Q4); the +1 is the caster's own share.
+     * 豪气冲天开始时支付的豪度值：（存活的被感染陆泳者 + 1）× 5，独自发动也有 5 点（所有者 2026-11-18）。
+     * 陆泳人数从不包含施法者（所有者 Q4）；+1 是施法者自己的一份。
      */
     public static int roarHao(int livingInfectedCrawlers) {
-        return Math.max(0, livingInfectedCrawlers) * ROAR_HAO_PER_INFECTED;
+        return (Math.max(0, livingInfectedCrawlers) + 1) * ROAR_HAO_PER_SHARE;
     }
 }
