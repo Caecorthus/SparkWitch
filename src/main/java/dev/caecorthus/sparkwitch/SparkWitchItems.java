@@ -3,6 +3,7 @@ package dev.caecorthus.sparkwitch;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.WitherGoheiItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.registry.SparkWitchBlocks;
 
 import dev.caecorthus.sparkwitch.item.defense.DefenseVialItem;
 import dev.caecorthus.sparkwitch.item.defense.DefenseVialRules;
@@ -669,6 +670,10 @@ public final class SparkWitchItems {
                 DEFENSE_VIAL_ID,
                 new DefenseVialItem(DefenseVialItem.createSettings())
         );
+        // Map-maker beds (PR #239): blocks plus their BlockItems, appended after every existing item so earlier
+        // registration order stays unchanged.
+        // 地图作者用的床（PR #239）：方块及其 BlockItem，追加在所有既有物品之后，以保持既有注册顺序不变。
+        SparkWitchBlocks.register();
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
         registered = true;

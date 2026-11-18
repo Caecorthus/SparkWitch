@@ -27,6 +27,9 @@ The Discoverer (`sparkwitch:discoverer`, 探索者, contributed in PR #189) is a
 under open sky, sprints with 25% less stamina drain, and earns 50 coins per task to spend on a spyglass.
 SparkWitch also gives the NoellesRoles Attendant (`noellesroles:attendant`, 乘务员) one Spare Key
 (`sparkwitch:spare_key`, 备用钥匙) at round start; it opens train doors and room-locked doors for durability.
+It also adds two map-maker beds (contributed in PR #239 and reworked in review), both Wathe trimmed beds: the Stained
+Bed (`sparkwitch:grey_dirty_bed`, 污渍的床) can never be slept in, and the Strange Bed (`sparkwitch:green_strange_bed`,
+奇怪的床) sleeps like Wathe's bed but gives 5 s Slowness I and Nausea to whoever finishes the sleep task in it.
 城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, contributed in PR #186 and reworked in review) is a civilian painter whose
 sanity never drains on its own and never returns from tasks, and whose shared ability key (G) paints a random reward
 from one of two tables chosen by her sanity, with a 60 s cooldown.
@@ -2275,6 +2278,22 @@ Current build baseline:
     150, stock 1), priced through `SparkTraitsCharismaBridge`. The PR's conductor key is no longer sold here; it became
     the Attendant's Spare Key below.
   - Open: no SparkAssist guidebook page and no Black Raven disguise entry yet.
+- `block/` + `registry/SparkWitchBlocks` (PR #239, reworked in review): the two map-maker beds, the only SparkWitch
+  blocks. `SparkBedBlock` extends Wathe's `TrimmedBedBlock` with Wathe's bed settings, and `SparkWitchBlocks` adds both
+  beds to Wathe's own `wathe:trimmed_bed` block entity type (Fabric `addSupportedBlock`), so they create Wathe's
+  `TrimmedBedBlockEntity`: Wathe's scorpion and its particles, SparkTraits' blue scorpion, SparkStrength's timed bomb
+  and the Knight duel seal treat them as ordinary trimmed beds. Registered from `SparkWitchItems.register()` after every
+  item; the BlockItems join the SparkWitch tab through its namespace sweep.
+  - Stained Bed (`grey_dirty_bed`): `onUse` answers before Wathe's (so no sleep, scorpion or trap ever lands): Wathe's
+    knife/revolver/derringer PASS like on Wathe's beds, anything else shows `block.sparkwitch.grey_dirty_bed.too_dirty`.
+    SparkStrength's connected-bed search still walks through it.
+  - Strange Bed (`green_strange_bed`): Wathe's `onUse` unchanged. `block/service/SparkBedService` (registered by
+    `SparkWitchBlocks.register()`, not `SparkWitchEvents`) listens to
+    `TaskComplete`: a SLEEP completion whose `getSleepingPosition()` is this bed gives 5 s Slowness I and 5 s Nausea
+    (the timer adds up across beds; an admin completion while lying in it counts).
+  - Resources: models parent Wathe's `template_trimmed_bed_*`; textures are Wathe's white bed with only the bedding
+    repainted (wood, trim and alpha byte-identical); loot drops the head half like Wathe; `minecraft:beds` and
+    `minecraft:mineable/axe` list both. No render layer entry: every sampled texel is opaque.
 - `item/sparekey/`: the Spare Key (`sparkwitch:spare_key`, 备用钥匙), the PR #189 conductor key renamed and given to
   the NoellesRoles Attendant (owner decisions 2026-11-03); numbers live in `SpareKeyRules`.
   - Grant (`SpareKeyAttendantKit`): once per round from an own `ON_FINISH_INITIALIZE` phase after Wathe's default

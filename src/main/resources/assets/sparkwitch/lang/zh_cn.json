@@ -2259,5 +2259,8 @@
   "message.sparkwitch.defense_vial.interrupted": "被打断了",
   "replay.item_use.sparkwitch.defense_vial.drink": "%s 喝下了防御药剂，获得一层护盾",
   "replay.item_use.sparkwitch.defense_vial.pour": "%s 把防御药剂倒进了餐盘",
-  "replay.item_use.sparkwitch.defense_vial.tray_shield": "%1$s 从餐盘取用时，获得了 %2$s 倒入的防御药剂提供的一层护盾"
+  "replay.item_use.sparkwitch.defense_vial.tray_shield": "%1$s 从餐盘取用时，获得了 %2$s 倒入的防御药剂提供的一层护盾",
+  "block.sparkwitch.grey_dirty_bed": "污渍的床",
+  "block.sparkwitch.green_strange_bed": "奇怪的床",
+  "block.sparkwitch.grey_dirty_bed.too_dirty": "太脏了…没人想睡在这张床上"
 }

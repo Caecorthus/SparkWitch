@@ -2259,5 +2259,8 @@
   "message.sparkwitch.defense_vial.interrupted": "Interrupted",
   "replay.item_use.sparkwitch.defense_vial.drink": "%s drank a defense vial and gained a shield layer",
   "replay.item_use.sparkwitch.defense_vial.pour": "%s poured a defense vial into a platter",
-  "replay.item_use.sparkwitch.defense_vial.tray_shield": "%s took a serving laced with %s's defense vial and gained a shield layer"
+  "replay.item_use.sparkwitch.defense_vial.tray_shield": "%s took a serving laced with %s's defense vial and gained a shield layer",
+  "block.sparkwitch.grey_dirty_bed": "Stained Bed",
+  "block.sparkwitch.green_strange_bed": "Strange Bed",
+  "block.sparkwitch.grey_dirty_bed.too_dirty": "Too filthy... nobody would sleep here"
 }
