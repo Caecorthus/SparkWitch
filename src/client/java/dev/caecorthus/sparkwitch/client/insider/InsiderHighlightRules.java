@@ -90,7 +90,8 @@ public final class InsiderHighlightRules {
     public static boolean mayAnswer(@Nullable Role viewerRole, @Nullable Role targetRole) {
         return InsiderParticipation.isPartnerRole(viewerRole)
                 || InsiderParticipation.isSniperRole(viewerRole)
-                || InsiderParticipation.isPartnerRole(targetRole);
+                || InsiderParticipation.isPartnerRole(targetRole)
+                || InsiderParticipation.isSniperRole(targetRole);
     }
 
     /**
@@ -156,12 +157,15 @@ public final class InsiderHighlightRules {
         return switch (viewer) {
             case INSIDER, SPHINX_HAO, SNIPER -> !instinctKey ? null
                     : InsiderParticipation.isCorruptCopRole(targetRole) ? InsiderRules.CORRUPT_COP_COLOR
+                    : InsiderParticipation.isSniperRole(targetRole) ? SniperRules.COLOR
                     : InsiderParticipation.isPartnerRole(targetRole) ? partnerColor(targetRole)
                     : viewer == Viewer.SPHINX_HAO ? SphinxHaoRules.COLOR
                     : viewer == Viewer.SNIPER ? SniperRules.COLOR
                     : InsiderRules.COLOR;
-            case CORRUPT_COP -> (instinctKey || corruptCopVisionWindow) && InsiderParticipation.isPartnerRole(targetRole)
-                    ? partnerColor(targetRole) : null;
+            case CORRUPT_COP -> !instinctKey && !corruptCopVisionWindow ? null
+                    : InsiderParticipation.isPartnerRole(targetRole) ? partnerColor(targetRole)
+                    : InsiderParticipation.isSniperRole(targetRole) ? SniperRules.COLOR
+                    : null;
             case NONE -> null;
         };
     }
