@@ -16,11 +16,13 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 
 /**
- * M1903A4 hitscan: a single ray up to {@link #RANGE} blocks. It picks targets the way the knife's crosshair does (any
- * living, playing player in line of sight, invisibility ignored) and kills the nearest one with a Wathe gunshot death,
- * exactly like a revolver shot, while a trail of white smoke marks the path to the victim or to the block it hit.
- * M1903A4 命中判定：一条最远 {@link #RANGE} 格的射线。目标选取与刀的准星一致（视线内任何存活且参与对局的玩家，无视隐身），
- * 击中最近的一名，并以 Wathe 枪击死因结算，与左轮开火完全相同；白色烟雾从枪口一直画到受害者或挡住的方块。
+ * M1903A4 hitscan: one ray up to {@link #RANGE} blocks, stopped by the first solid block. Targets are picked the way the
+ * knife's crosshair does (any living, playing player in line of sight, invisibility ignored) and the nearest one dies to
+ * a Wathe gunshot death, exactly like a revolver shot, while a trail of white smoke marks the path to the victim or to
+ * the block that stopped the round.
+ * M1903A4 命中判定：一条最远 {@link #RANGE} 格的射线，遇到第一个实体方块即停止。目标选取与刀的准星一致（视线内任何存活且
+ * 参与对局的玩家，无视隐身），击中最近的一名，并以 Wathe 枪击死因结算，与左轮开火相同；白色烟雾从枪口一直画到受害者或
+ * 挡住子弹的方块。
  */
 public final class M1903A4Combat {
     /** Gun range and crosshair range, both 50 blocks. / 射程与准星判定距离同为 50 格。 */
@@ -30,25 +32,42 @@ public final class M1903A4Combat {
     private M1903A4Combat() {
     }
 
-    /** Nearest player on the ray, or {@code null}. Client and server share this so the crosshair matches the shot. */
-    public static EntityHitResult raycast(PlayerEntity shooter) {
+    /**
+     * One resolved shot: where the round stops and, if a player was in front of that point, whom it hit. Client and
+     * server share this so the crosshair can never promise a hit through a wall.
+     * 一次结算好的射击：子弹停在哪里，以及在此之前是否命中玩家。客户端与服务端共用，准星因此不会在墙后亮起。
+     */
+    public record Shot(Vec3d stop, EntityHitResult hit) {
+    }
+
+    /** Resolves the round: block ray first, the entity ray then only searches up to that block. / 先算方块，再只算到方块为止的实体。 */
+    public static Shot resolveShot(PlayerEntity shooter) {
         Vec3d eye = shooter.getCameraPosVec(1.0F);
         Vec3d look = shooter.getRotationVec(1.0F);
-        Vec3d end = eye.add(look.multiply(RANGE));
-        Box box = shooter.getBoundingBox().stretch(look.multiply(RANGE)).expand(1.0D);
-        return ProjectileUtil.raycast(
+        Vec3d maxEnd = eye.add(look.multiply(RANGE));
+        BlockHitResult block = shooter.getWorld().raycast(new RaycastContext(
+                eye, maxEnd, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, shooter));
+        Vec3d stop = block.getType() == HitResult.Type.MISS ? maxEnd : block.getPos();
+
+        Vec3d searched = stop.subtract(eye);
+        Box box = shooter.getBoundingBox().stretch(searched).expand(1.0D);
+        EntityHitResult hit = ProjectileUtil.raycast(
                 shooter,
                 eye,
-                end,
+                stop,
                 box,
                 entity -> sparkwitch$isTarget(shooter, entity),
                 RANGE * RANGE
         );
+        if (hit != null) {
+            stop = hit.getPos();
+        }
+        return new Shot(stop, hit);
     }
 
-    /** Whether the crosshair should show the aimed state: charging and a target on the ray. / 准星是否显示瞄准状态。 */
+    /** Whether the crosshair should show the aimed state: charging and a target before any wall. / 蓄力且墙前有目标时显示瞄准准星。 */
     public static boolean aimsAtTarget(PlayerEntity shooter) {
-        return shooter.isUsingItem() && raycast(shooter) != null;
+        return shooter.isUsingItem() && resolveShot(shooter).hit() != null;
     }
 
     /** Server side of one shot: smoke trail, then the gunshot kill and its kill sound. / 一次开火的服务端结算。 */
@@ -56,22 +75,10 @@ public final class M1903A4Combat {
         ServerWorld world = shooter.getServerWorld();
         Vec3d eye = shooter.getCameraPosVec(1.0F);
         Vec3d look = shooter.getRotationVec(1.0F);
-        Vec3d end = eye.add(look.multiply(RANGE));
+        Shot shot = resolveShot(shooter);
+        spawnSmoke(world, eye, shot.stop(), look);
 
-        EntityHitResult hit = raycast(shooter);
-        Vec3d stop = end;
-        if (hit != null) {
-            stop = hit.getPos();
-        } else {
-            BlockHitResult block = world.raycast(new RaycastContext(
-                    eye, end, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, shooter));
-            if (block.getType() != HitResult.Type.MISS) {
-                stop = block.getPos();
-            }
-        }
-        spawnSmoke(world, eye, stop, look);
-
-        if (hit != null && hit.getEntity() instanceof ServerPlayerEntity victim) {
+        if (shot.hit() != null && shot.hit().getEntity() instanceof ServerPlayerEntity victim) {
             GameFunctions.killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN);
             dev.doctor4t.wathe.record.GameRecordManager.recordItemUse(
                     shooter, dev.caecorthus.sparkwitch.SparkWitchItems.M1903A4_ID, victim, new net.minecraft.nbt.NbtCompound());
