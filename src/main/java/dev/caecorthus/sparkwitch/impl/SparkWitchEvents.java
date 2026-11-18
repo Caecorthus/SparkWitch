@@ -88,6 +88,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.murderouswitch.MurderousWitchFeat
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderEconomyService;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderEquipmentService;
+import dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperFeatureService;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayKillRewardService;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayLoadoutService;
 import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatService;
@@ -238,10 +239,6 @@ public final class SparkWitchEvents {
         FiendFeatureService.register();
         InsiderEquipmentService.register();
         InsiderEconomyService.register();
-        dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperLoadoutService.register();
-        dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperEconomyService.register();
-        dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Gunplay.register();
-        dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Replay.register();
         BlindFeatureService.register();
         AbyssListenerFeatureService.register();
         PotionGunnerFeatureService.register();
@@ -472,6 +469,11 @@ public final class SparkWitchEvents {
         // registered after 规划大师 and before USEC, which stays last. / 狮身豪（嘉豪阵营）：各服务端服务（开局物品、门、
         // 商店、技能）的顺序由其注册中心固定；注册在规划大师之后、USEC 之前，USEC 保持最后。
         dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoFeatureService.register();
+        // The Sniper (Team Jiahao): its hub fixes the order of its server services (kit, money and shop, the M1903A4's
+        // sounds and replay lines, the gun-punishment exemption); registered after 狮身豪 and before USEC, which stays
+        // last. / 狙击手（嘉豪阵营）：各服务端服务（开局物品、金钱与商店、M1903A4 音效与回放文本、开枪惩罚豁免）的顺序由其
+        // 注册中心固定；注册在狮身豪之后、USEC 之前，USEC 保持最后。
+        SniperFeatureService.register();
         // USEC (police variant): appended last so every existing listener keeps its order; the hub fixes the order of
         // the USEC services. / USEC（警察变体）：追加在最后，使所有既有监听器保持顺序；USEC 各服务的顺序由注册中心固定。
         UsecFeatureService.register();
