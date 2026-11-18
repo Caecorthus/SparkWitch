@@ -1,5 +1,6 @@
 package dev.caecorthus.sparkwitch.item.m1903a4;
 
+import dev.doctor4t.wathe.cca.GameWorldComponent;
 import dev.doctor4t.wathe.game.GameConstants;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.entity.Entity;
@@ -79,11 +80,19 @@ public final class M1903A4Combat {
         spawnSmoke(world, eye, shot.stop(), look);
 
         if (shot.hit() != null && shot.hit().getEntity() instanceof ServerPlayerEntity victim) {
+            GameWorldComponent game = GameWorldComponent.KEY.get(world);
+            boolean wasDead = game.isPlayerDead(victim.getUuid());
             GameFunctions.killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN);
+            // A shield, the Fiend's feign death or any other protection cancels the kill inside killPlayer; the kill
+            // sound belongs to an actual death only.
+            // 护盾、魔人假死或其他保护会在 killPlayer 内部取消击杀；击杀音效只属于真正的死亡。
+            boolean killed = !wasDead && game.isPlayerDead(victim.getUuid());
             dev.doctor4t.wathe.record.GameRecordManager.recordItemUse(
                     shooter, dev.caecorthus.sparkwitch.SparkWitchItems.M1903A4_ID, victim, new net.minecraft.nbt.NbtCompound());
-            world.playSound(null, shooter.getBlockPos(), dev.caecorthus.sparkwitch.SparkWitchSounds.M1903A4_KILL,
-                    net.minecraft.sound.SoundCategory.PLAYERS, 1.0F, 1.0F);
+            if (killed) {
+                world.playSound(null, shooter.getBlockPos(), dev.caecorthus.sparkwitch.SparkWitchSounds.M1903A4_KILL,
+                        net.minecraft.sound.SoundCategory.PLAYERS, 1.0F, 1.0F);
+            }
         }
     }
 
