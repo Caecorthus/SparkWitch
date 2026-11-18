@@ -55,6 +55,7 @@ import dev.caecorthus.sparkwitch.roles.neutral.cat.SchrodingersCatRules;
 import dev.caecorthus.sparkwitch.roles.neutral.fiend.FiendRules;
 import dev.caecorthus.sparkwitch.roles.neutral.ferryman.FerrymanRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
 import dev.caecorthus.sparkwitch.roles.neutral.stowaway.StowawayRules;
 import dev.caecorthus.sparkwitch.roles.special.wraith.WraithRole;
@@ -114,6 +115,7 @@ public final class SparkWitchRoleRegistry {
     public static final Identifier STOWAWAY_ID = StowawayRules.ROLE_ID;
     public static final Identifier SCHRODINGERS_CAT_ID = SchrodingersCatRules.ROLE_ID;
     public static final Identifier INSIDER_ID = InsiderRules.ROLE_ID;
+    public static final Identifier SNIPER_ID = SniperRules.ROLE_ID;
     public static final Identifier ABYSS_LISTENER_ID = AbyssListenerRules.ROLE_ID;
     public static final Identifier POTION_GUNNER_ID = PotionGunnerRules.ROLE_ID;
     public static final Identifier RIFTWALKER_ID = RiftwalkerRules.ROLE_ID;
@@ -174,6 +176,7 @@ public final class SparkWitchRoleRegistry {
     private static Role stowaway;
     private static Role schrodingersCat;
     private static Role insider;
+    private static Role sniper;
     private static Role abyssListener;
     private static Role potionGunner;
     private static Role riftwalker;
@@ -229,6 +232,10 @@ public final class SparkWitchRoleRegistry {
         // 仅作警察分类，使 SparkStrength 开局为内应发放接入警察频道的平板（D4），与 SparkStrength 对黑警的处理相同；
         // 内应仍属嘉豪阵营，从不占用警位。
         PoliceRoles.register(INSIDER_ID);
+        // Police classification only, so the Sniper gets SparkStrength's tablet (public and vigilante channels) at
+        // round start like the Corrupt Cop and Insider; it stays on Team Jiahao and never takes a cop slot.
+        // 仅作警察分类，使狙击手像黑警、内应一样在开局拿到 SparkStrength 平板（公共与义警频道）；仍属嘉豪阵营，不占警位。
+        PoliceRoles.register(SNIPER_ID);
         // Police classification, like the Control Expert and the Seeker (SparkTraits police traits, SparkStrength tablet);
         // cop slots come from PoliceSlotAssignmentService.
         // 与控场专家、搜寻者相同的警察分类（SparkTraits 警察词条、SparkStrength 平板）；警位由 PoliceSlotAssignmentService 分配。
@@ -433,6 +440,11 @@ public final class SparkWitchRoleRegistry {
     public static Role insider() {
         ensureRegistered();
         return insider;
+    }
+
+    public static Role sniper() {
+        ensureRegistered();
+        return sniper;
     }
 
     public static Role abyssListener() {
@@ -1188,6 +1200,18 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(false)
                 .nativeWatheFaction(Faction.NEUTRAL)
                 .build());
+        // The Sniper (owner 2026-11-17) is a third Team Jiahao member with the Corrupt Cop's profile. It is registered
+        // just before the Insider so the Insider stays the last entry (InsiderRegistrationContractTest) and never
+        // appears in random rolling: owners will rework role drawing, so admins hand it out for now.
+        // 狙击手（所有者 2026-11-17）是第三名嘉豪阵营成员，参数与黑警相同。注册在内应之前，使内应仍是最后一项
+        //（InsiderRegistrationContractTest），且不进入随机抽取：所有者之后会重做刷新规则，目前由管理员发放。
+        sniper = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SNIPER_ID, SparkWitchFactions.JIAHAO)
+                .color(SniperRules.COLOR)
+                .moodType(Role.MoodType.FAKE)
+                .maxSprintTime(GameConstants.getInTicks(0, 10))
+                .canSeeTime(true)
+                .appearanceCondition(context -> false)
+                .build());
         // Appended last so existing registration order stays unchanged; a Team Jiahao member (native Wathe JIAHAO) with
         // the Corrupt Cop's profile (FAKE mood with tasks, civilian stamina, round clock). Never drawn at random: the
         // Insider is paired with a drawn Corrupt Cop after neutral assignment (D1). Never a Witch-skill role: kept out
@@ -1310,6 +1334,7 @@ public final class SparkWitchRoleRegistry {
                 savior,
                 fiend,
                 insider,
+                sniper,
                 stowaway,
                 schrodingersCat,
                 // The Charon (PR #202) and then its Lost Soul (owner 2026-11-09) close the neutral block after

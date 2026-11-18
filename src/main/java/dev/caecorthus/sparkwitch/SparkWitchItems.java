@@ -5,7 +5,7 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.WitherGoheiItem
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
-import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
+import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Item;import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.item.rope.RopeItem;
@@ -159,6 +159,8 @@ public final class SparkWitchItems {
     public static final Identifier HANNA_HANDKERCHIEF_ID = HannaRules.HANDKERCHIEF_ID;
     public static final Identifier ROPE_ID = RopeRules.ITEM_ID;
     public static final Identifier KOKO_LIGHTSTICK_ID = KokoRules.LIGHTSTICK_ID;
+    public static final Identifier M1903A4_ID = SparkWitch.id("m1903a4");
+    public static final Identifier AMMO_3006_ID = SparkWitch.id("ammo_3006");
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -229,6 +231,8 @@ public final class SparkWitchItems {
     private static Item hannaHandkerchief;
     private static Item rope;
     private static Item kokoLightstick;
+    private static Item m1903a4;
+    private static Item ammo3006;
 
     private static boolean registered;
 
@@ -624,6 +628,17 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 KOKO_LIGHTSTICK_ID,
                 new KokoLightstickItem(KokoLightstickItem.createSettings())
+        );
+        m1903a4 = Registry.register(
+                Registries.ITEM,
+                M1903A4_ID,
+                new M1903A4Item(M1903A4Item.createSettings())
+        );
+        ammo3006 = Registry.register(
+                Registries.ITEM,
+                AMMO_3006_ID,
+                new dev.caecorthus.sparkwitch.item.m1903a4.Ammo3006Item(
+                        dev.caecorthus.sparkwitch.item.m1903a4.Ammo3006Item.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -1160,5 +1175,19 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return sherryNote;
+    }
+
+    public static Item m1903a4() {
+        if (m1903a4 == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return m1903a4;
+    }
+
+    public static Item ammo3006() {
+        if (ammo3006 == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return ammo3006;
     }
 }

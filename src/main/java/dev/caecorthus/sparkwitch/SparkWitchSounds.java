@@ -59,6 +59,17 @@ public final class SparkWitchSounds {
     public static final Identifier DOUBLE_BARREL_SHOT_ID = HunterRules.SHOT_SOUND_ID;
     public static final Identifier DOUBLE_BARREL_LOAD_ID = HunterRules.LOAD_SOUND_ID;
     /**
+     * Sniper M1903A4 sounds: shot (16 blocks), bolt, bolt end, open bolt and round seat (8 each). No subtitles.
+     * 狙击手 M1903A4 音效：枪声传播 16 格，拉栓、关栓、开栓与压弹各 8 格。无字幕。
+     */
+    public static final Identifier M1903A4_SHOOT_ID = SparkWitch.id("item.m1903a4.shoot");
+    public static final Identifier M1903A4_BOLT_ID = SparkWitch.id("item.m1903a4.bolt");
+    public static final Identifier M1903A4_BOLT_1_ID = SparkWitch.id("item.m1903a4.bolt_1");
+    public static final Identifier M1903A4_OPENBOLT_ID = SparkWitch.id("item.m1903a4.openbolt");
+    public static final Identifier M1903A4_LOAD_ID = SparkWitch.id("item.m1903a4.load");
+    /** Kill confirmation played at the shooter when the rifle kills. / 击杀时在射手位置播放的确认音。 */
+    public static final Identifier M1903A4_KILL_ID = SparkWitch.id("item.m1903a4.kill");
+    /**
      * Savior pistol sounds (ids live in SaviorRules): the shot carries at Wathe's revolver volume 5.0 and the click at
      * 0.5. The bundled audio lives under {@code sparkwitch:sounds/item/} so it can be replaced.
      * 救世主手枪音效（id 定义在 SaviorRules）：枪声沿用 Wathe 左轮的 5.0 音量，点击声 0.5。音频位于
@@ -90,6 +101,12 @@ public final class SparkWitchSounds {
     public static SoundEvent USEC_RIFLE_SCOPE;
     public static SoundEvent DOUBLE_BARREL_SHOT;
     public static SoundEvent DOUBLE_BARREL_LOAD;
+    public static SoundEvent M1903A4_SHOOT;
+    public static SoundEvent M1903A4_BOLT;
+    public static SoundEvent M1903A4_BOLT_1;
+    public static SoundEvent M1903A4_OPENBOLT;
+    public static SoundEvent M1903A4_LOAD;
+    public static SoundEvent M1903A4_KILL;
     public static SoundEvent SAVIOR_PISTOL_SHOOT;
     public static SoundEvent SAVIOR_PISTOL_CLICK;
     public static SoundEvent SAVIOR_LIGHTSABER_HIT;
@@ -197,6 +214,18 @@ public final class SparkWitchSounds {
                 SoundEvent.of(DOUBLE_BARREL_SHOT_ID));
         DOUBLE_BARREL_LOAD = Registry.register(Registries.SOUND_EVENT, DOUBLE_BARREL_LOAD_ID,
                 SoundEvent.of(DOUBLE_BARREL_LOAD_ID));
+        M1903A4_SHOOT = Registry.register(Registries.SOUND_EVENT, M1903A4_SHOOT_ID,
+                SoundEvent.of(M1903A4_SHOOT_ID));
+        M1903A4_BOLT = Registry.register(Registries.SOUND_EVENT, M1903A4_BOLT_ID,
+                SoundEvent.of(M1903A4_BOLT_ID));
+        M1903A4_BOLT_1 = Registry.register(Registries.SOUND_EVENT, M1903A4_BOLT_1_ID,
+                SoundEvent.of(M1903A4_BOLT_1_ID));
+        M1903A4_OPENBOLT = Registry.register(Registries.SOUND_EVENT, M1903A4_OPENBOLT_ID,
+                SoundEvent.of(M1903A4_OPENBOLT_ID));
+        M1903A4_LOAD = Registry.register(Registries.SOUND_EVENT, M1903A4_LOAD_ID,
+                SoundEvent.of(M1903A4_LOAD_ID));
+        M1903A4_KILL = Registry.register(Registries.SOUND_EVENT, M1903A4_KILL_ID,
+                SoundEvent.of(M1903A4_KILL_ID));
         SAVIOR_PISTOL_SHOOT = Registry.register(Registries.SOUND_EVENT, SAVIOR_PISTOL_SHOOT_ID,
                 SoundEvent.of(SAVIOR_PISTOL_SHOOT_ID));
         SAVIOR_PISTOL_CLICK = Registry.register(Registries.SOUND_EVENT, SAVIOR_PISTOL_CLICK_ID,

@@ -415,5 +415,53 @@
     "sounds": [
       "sparkwitch:bear/earplugs_insert"
     ]
+  },
+  "item.m1903a4.shoot": {
+    "sounds": [
+      {
+        "name": "sparkwitch:item/m1903a4_shoot",
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "item.m1903a4.bolt": {
+    "sounds": [
+      {
+        "name": "sparkwitch:item/m1903a4_bolt",
+        "attenuation_distance": 8
+      }
+    ]
+  },
+  "item.m1903a4.bolt_1": {
+    "sounds": [
+      {
+        "name": "sparkwitch:item/m1903a4_bolt_1",
+        "attenuation_distance": 8
+      }
+    ]
+  },
+  "item.m1903a4.openbolt": {
+    "sounds": [
+      {
+        "name": "sparkwitch:item/m1903a4_openbolt",
+        "attenuation_distance": 8
+      }
+    ]
+  },
+  "item.m1903a4.load": {
+    "sounds": [
+      {
+        "name": "sparkwitch:item/m1903a4_load",
+        "attenuation_distance": 8
+      }
+    ]
+  },
+  "item.m1903a4.kill": {
+    "sounds": [
+      {
+        "name": "sparkwitch:item/m1903a4_kill",
+        "attenuation_distance": 16
+      }
+    ]
   }
 }

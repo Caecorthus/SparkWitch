@@ -1,0 +1,28 @@
+{
+  "parent": "minecraft:item/bow",
+  "textures": {
+    "layer0": "sparkwitch:item/m1903a4"
+  },
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [-80, 260, -40],
+      "translation": [-1, 0.1, -3.6],
+      "scale": [1.08, 1.08, 1.08]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [-80, -280, 40],
+      "translation": [-1, 0.1, -3.6],
+      "scale": [1.08, 1.08, 1.08]
+    },
+    "firstperson_righthand": {
+      "rotation": [0, -90, 25],
+      "translation": [1.13, 3.2, 1.13],
+      "scale": [0.816, 0.816, 0.816]
+    },
+    "firstperson_lefthand": {
+      "rotation": [0, 90, -25],
+      "translation": [1.13, 3.2, 1.13],
+      "scale": [0.816, 0.816, 0.816]
+    }
+  }
+}

@@ -216,7 +216,8 @@ public final class JiahaoTeamWinRules {
     }
 
     private static boolean isTeamRoleId(Identifier role) {
-        return InsiderRules.ROLE_ID.equals(role) || InsiderRules.CORRUPT_COP_ID.equals(role);
+        return InsiderRules.ROLE_ID.equals(role) || InsiderRules.CORRUPT_COP_ID.equals(role)
+                || dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperRules.ROLE_ID.equals(role);
     }
 
     private static UUID primary(List<Member> members, UUID livingMember) {

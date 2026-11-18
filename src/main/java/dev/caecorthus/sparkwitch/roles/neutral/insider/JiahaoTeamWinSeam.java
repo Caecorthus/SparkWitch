@@ -121,7 +121,11 @@ public final class JiahaoTeamWinSeam {
             boolean alive = GameFunctions.isPlayerPlayingAndAlive(player);
             members.add(new JiahaoTeamWinRules.Member(
                     entry.getKey(),
-                    InsiderParticipation.isInsiderRole(role),
+                    // Sniper counts as a rules-enabling member like the Insider, so a round with a Sniper but no
+                    // Insider still wins and blocks through Team Jiahao.
+                    // 狙击手与内应一样是使规则生效的成员，因此只有狙击手、没有内应的回合同样按嘉豪阵营结算与阻止。
+                    InsiderParticipation.isInsiderRole(role)
+                            || dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperRules.isSniperRole(role),
                     player instanceof ServerPlayerEntity,
                     alive,
                     alive && SwallowedPlayerComponent.isPlayerSwallowed(player)
