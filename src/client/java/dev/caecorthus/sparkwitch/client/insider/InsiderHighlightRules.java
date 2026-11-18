@@ -168,10 +168,6 @@ public final class InsiderHighlightRules {
     }
 
     /**
-     * A partner's colour where the Insider's mint stands for it: mint for an Insider, coral for a Sphinx Hao.
-     * 用内应薄荷青代表搭档之处的颜色：内应为薄荷青，狮身豪为珊瑚色。
-     */
-    /**
      * The Corrupt Cop's answer: partners in their colour, the Sniper in its own, nothing for anyone else. Written as
      * plain branches because a nested {@code int}/{@code Integer} ternary unboxes the trailing {@code null} and throws.
      * 黑警视角的答案：搭档显示各自颜色，狙击手显示其职业色，其他人不作答。用普通分支书写，因为嵌套的
@@ -190,6 +186,10 @@ public final class InsiderHighlightRules {
         return null;
     }
 
+    /**
+     * A partner's colour where the Insider's mint stands for it: mint for an Insider, coral for a Sphinx Hao.
+     * 用内应薄荷青代表搭档之处的颜色：内应为薄荷青，狮身豪为珊瑚色。
+     */
     static int partnerColor(@Nullable Role partnerRole) {
         return InsiderParticipation.isSphinxHaoRole(partnerRole) ? SphinxHaoRules.COLOR : InsiderRules.COLOR;
     }

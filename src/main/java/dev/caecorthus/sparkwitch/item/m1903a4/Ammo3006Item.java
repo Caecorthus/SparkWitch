@@ -13,9 +13,11 @@ import net.minecraft.world.World;
 import java.util.List;
 
 /**
- * Springfield .30-06 service round: held in the other hand it loads one round into the M1903A4 through
- * {@link M1903A4Item#tryReload}, and it can also be right-clicked onto the rifle in the inventory.
- * 春田 .30-06 制式步枪弹：另一只手持枪时使用可经 {@link M1903A4Item#tryReload} 装一发，也可在背包中右键步枪装填。
+ * Springfield .30-06 service round: used from the main hand with the rifle in the off hand it loads one round into the
+ * M1903A4 through {@link M1903A4Item#tryReload}, and it can also be right-clicked onto the rifle in the inventory. The
+ * rifle itself only charges from the main hand, so a failed load never falls through into a shot.
+ * 春田 .30-06 制式步枪弹：主手持弹、副手持枪时使用，可经 {@link M1903A4Item#tryReload} 装一发；也可在背包中右键步枪装填。
+ * 步枪本身只能在主手蓄力，因此装填失败不会转为开火。
  */
 public class Ammo3006Item extends Item {
 
