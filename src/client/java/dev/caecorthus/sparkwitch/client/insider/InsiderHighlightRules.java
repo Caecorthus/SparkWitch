@@ -2,6 +2,7 @@ package dev.caecorthus.sparkwitch.client.insider;
 
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderParticipation;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperRules;
 import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
 import dev.doctor4t.wathe.api.Role;
 import org.jetbrains.annotations.Nullable;
@@ -70,6 +71,8 @@ public final class InsiderHighlightRules {
         INSIDER,
         /** A living Sphinx Hao: the Insider's own view in its role colour. / 存活的狮身豪：以其职业色呈现的内应视角。 */
         SPHINX_HAO,
+        /** A living Sniper: the Insider's own view in the Sniper's role colour. / 存活的狙击手：以狙击手职业色呈现的内应视角。 */
+        SNIPER,
         /** A living NoellesRoles Corrupt Cop. / 存活的 NoellesRoles 黑警。 */
         CORRUPT_COP,
         /** Anyone else, killers and dead or spectating viewers included: Insider rules stay silent. / 其他人（含杀手、死亡或旁观者）：内应规则不作答。 */
@@ -85,7 +88,9 @@ public final class InsiderHighlightRules {
      * 在观察者分类之前的廉价预筛：只有搭档自身视角会对非搭档目标作答，因此黑警判断只在目标是搭档（内应或狮身豪）时执行。
      */
     public static boolean mayAnswer(@Nullable Role viewerRole, @Nullable Role targetRole) {
-        return InsiderParticipation.isPartnerRole(viewerRole) || InsiderParticipation.isPartnerRole(targetRole);
+        return InsiderParticipation.isPartnerRole(viewerRole)
+                || InsiderParticipation.isSniperRole(viewerRole)
+                || InsiderParticipation.isPartnerRole(targetRole);
     }
 
     /**
@@ -102,6 +107,9 @@ public final class InsiderHighlightRules {
         }
         if (InsiderParticipation.isSphinxHaoRole(viewerRole)) {
             return Viewer.SPHINX_HAO;
+        }
+        if (InsiderParticipation.isSniperRole(viewerRole)) {
+            return Viewer.SNIPER;
         }
         return InsiderParticipation.isCorruptCopRole(viewerRole) ? Viewer.CORRUPT_COP : Viewer.NONE;
     }
@@ -130,7 +138,7 @@ public final class InsiderHighlightRules {
      * 即使黑警带有平板嫌疑人标记，搭档仍显示深蓝）；内应自身视角的其他目标为 {@link #INSIDER_VIEW_PRIORITY}。
      */
     public static int priority(Viewer viewer, @Nullable Role targetRole) {
-        return (viewer == Viewer.INSIDER || viewer == Viewer.SPHINX_HAO)
+        return (viewer == Viewer.INSIDER || viewer == Viewer.SPHINX_HAO || viewer == Viewer.SNIPER)
                 && !InsiderParticipation.isCorruptCopRole(targetRole)
                 ? INSIDER_VIEW_PRIORITY
                 : PRIORITY;
@@ -146,10 +154,12 @@ public final class InsiderHighlightRules {
     public static @Nullable Integer color(Viewer viewer, boolean instinctKey, boolean corruptCopVisionWindow,
                                           @Nullable Role targetRole) {
         return switch (viewer) {
-            case INSIDER, SPHINX_HAO -> !instinctKey ? null
+            case INSIDER, SPHINX_HAO, SNIPER -> !instinctKey ? null
                     : InsiderParticipation.isCorruptCopRole(targetRole) ? InsiderRules.CORRUPT_COP_COLOR
                     : InsiderParticipation.isPartnerRole(targetRole) ? partnerColor(targetRole)
-                    : viewer == Viewer.SPHINX_HAO ? SphinxHaoRules.COLOR : InsiderRules.COLOR;
+                    : viewer == Viewer.SPHINX_HAO ? SphinxHaoRules.COLOR
+                    : viewer == Viewer.SNIPER ? SniperRules.COLOR
+                    : InsiderRules.COLOR;
             case CORRUPT_COP -> (instinctKey || corruptCopVisionWindow) && InsiderParticipation.isPartnerRole(targetRole)
                     ? partnerColor(targetRole) : null;
             case NONE -> null;
@@ -171,6 +181,6 @@ public final class InsiderHighlightRules {
      * 已经提供。
      */
     public static boolean usesKillerStyleInstinctLight(@Nullable Role role) {
-        return InsiderParticipation.isPartnerRole(role);
+        return InsiderParticipation.isPartnerRole(role) || InsiderParticipation.isSniperRole(role);
     }
 }

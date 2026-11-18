@@ -28,6 +28,11 @@ public final class InsiderParticipation {
         return role != null && InsiderRules.CORRUPT_COP_ID.equals(role.identifier());
     }
 
+    /** A Sniper: a Team Jiahao member that is not one of the Corrupt Cop's partners. / 狙击手：嘉豪阵营成员，但不是黑警搭档。 */
+    public static boolean isSniperRole(@Nullable Role role) {
+        return dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperRules.isSniperRole(role);
+    }
+
     public static boolean isSphinxHaoRole(@Nullable Role role) {
         return SphinxHaoRules.isSphinxHao(role);
     }

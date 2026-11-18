@@ -7,14 +7,13 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import org.agmas.noellesroles.ModItems;
 
 /**
- * Sniper kit at round start: the neutral master key the Corrupt Cop and Insider carry, plus the M1903A4 in place of
- * their revolver. The tablet is issued by SparkStrength once the role is registered on the police network. Items drop
- * at the player's feet if the inventory is full, so nothing is lost.
- * 狙击手开局装备：与黑警、内应相同的万能钥匙，以及替代左轮的 M1903A4。平板在职业注册进警察网络后由 SparkStrength 发放。
- * 背包已满时物品掉在脚下，不会丢失。
+ * Sniper kit at round start: the M1903A4 in place of the Corrupt Cop's revolver. No master key is issued (owner
+ * 2026-11-18); the tablet is issued by SparkStrength once the role is registered on the police network. Items drop at
+ * the player's feet if the inventory is full, so nothing is lost.
+ * 狙击手开局装备：以 M1903A4 替代黑警的左轮。不发放万能钥匙（所有者 2026-11-18）；平板在职业注册进警察网络后由
+ * SparkStrength 发放。背包已满时物品掉在脚下，不会丢失。
  */
 public final class SniperLoadoutService {
     private static boolean registered;
@@ -40,9 +39,6 @@ public final class SniperLoadoutService {
                 continue;
             }
             PlayerInventory inventory = player.getInventory();
-            if (!inventory.contains(stack -> stack.isOf(ModItems.NEUTRAL_MASTER_KEY))) {
-                inventory.offerOrDrop(new ItemStack(ModItems.NEUTRAL_MASTER_KEY));
-            }
             if (!inventory.contains(stack -> stack.isOf(SparkWitchItems.m1903a4()))) {
                 inventory.offerOrDrop(new ItemStack(SparkWitchItems.m1903a4()));
             }
