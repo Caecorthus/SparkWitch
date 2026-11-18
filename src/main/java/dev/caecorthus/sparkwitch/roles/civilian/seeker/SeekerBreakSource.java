@@ -62,7 +62,14 @@ public enum SeekerBreakSource {
      * earlier replay id keeps its value.
      * 狮身豪“手”枪的拳头：经原版使用物品数据包的服务端即时射线，与电击枪相同。追加在最后，既有回放 id 不变。
      */
-    SPHINX_HAO_FIST(Kind.RAY);
+    SPHINX_HAO_FIST(Kind.RAY),
+    /**
+     * Sniper M1903A4 round: a server hitscan on bow release, like the Sphinx Hao fist, through
+     * {@code SeekerDeviceHits.onM1903A4Fired}. Appended last so every earlier replay id keeps its value.
+     * 狙击手 M1903A4 子弹：松开蓄力时的服务端即时射线，与狮身豪拳头相同，经 {@code SeekerDeviceHits.onM1903A4Fired}。
+     * 追加在最后，既有回放 id 不变。
+     */
+    M1903A4(Kind.RAY);
 
     /** Geometry family; rays and projectiles use nearest-wins blocking, blasts do not. / 几何类别。 */
     public enum Kind {
