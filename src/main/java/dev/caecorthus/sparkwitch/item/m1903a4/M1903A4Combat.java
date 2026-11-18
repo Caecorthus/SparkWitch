@@ -73,6 +73,8 @@ public final class M1903A4Combat {
 
         if (hit != null && hit.getEntity() instanceof ServerPlayerEntity victim) {
             GameFunctions.killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN);
+            dev.doctor4t.wathe.record.GameRecordManager.recordItemUse(
+                    shooter, dev.caecorthus.sparkwitch.SparkWitchItems.M1903A4_ID, victim, new net.minecraft.nbt.NbtCompound());
             world.playSound(null, shooter.getBlockPos(), dev.caecorthus.sparkwitch.SparkWitchSounds.M1903A4_KILL,
                     net.minecraft.sound.SoundCategory.PLAYERS, 1.0F, 1.0F);
         }

@@ -2269,5 +2269,6 @@
   "item.sparkwitch.m1903a4.tooltip.line1": "当前装填：%s / %s",
   "item.sparkwitch.m1903a4.tooltip.line2": "在背包中用子弹右键步枪，或在另一只手持枪时直接使用子弹进行装填。",
   "item.sparkwitch.m1903a4.tooltip.empty": "(空)",
-  "replay.item_use.sparkwitch.m1903a4.reload": "%s 将§6M1903A4§r装填至 %s 发"
+  "replay.item_use.sparkwitch.m1903a4.reload": "%s 将§6M1903A4§r装填至 %s 发",
+  "replay.item_use.sparkwitch.m1903a4.kill": "%s 用§6M1903A4§r击杀了 %s"
 }

@@ -34,13 +34,21 @@ public final class M1903A4Replay {
     @Nullable
     private static Text format(GameRecordEvent event, GameRecordManager.MatchRecord match, ServerWorld world) {
         NbtCompound data = event.data();
-        if (!"reload".equals(data.getString("action")) || !data.containsUuid("actor")) {
+        if (!data.containsUuid("actor")) {
             return null;
         }
-        return Text.translatable(
-                "replay.item_use.sparkwitch.m1903a4.reload",
-                ReplayGenerator.formatPlayerName(data.getUuid("actor"), ReplayGenerator.getPlayerInfoCache(match)),
-                data.getInt("loaded_rounds")
-        );
+        Text actor = ReplayGenerator.formatPlayerName(data.getUuid("actor"), ReplayGenerator.getPlayerInfoCache(match));
+        if ("reload".equals(data.getString("action"))) {
+            return Text.translatable(
+                    "replay.item_use.sparkwitch.m1903a4.reload", actor, data.getInt("loaded_rounds"));
+        }
+        if (data.containsUuid("target")) {
+            return Text.translatable(
+                    "replay.item_use.sparkwitch.m1903a4.kill",
+                    actor,
+                    ReplayGenerator.formatPlayerName(data.getUuid("target"), ReplayGenerator.getPlayerInfoCache(match))
+            );
+        }
+        return null;
     }
 }
