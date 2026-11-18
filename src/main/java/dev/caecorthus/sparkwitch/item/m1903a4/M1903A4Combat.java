@@ -259,25 +259,4 @@ public final class M1903A4Combat {
         }
         world.spawnParticles(ParticleTypes.CLOUD, to.x, to.y, to.z, 2, 0.02D, 0.02D, 0.02D, 0.0D);
     }
-
-    /**
-     * Client box of {@code candidate} grown by the rifle's margin (current positions: the client already sees the
-     * delayed view). / {@code candidate} 的客户端箱体加步枪余量（当前位置：客户端看到的本就是延迟画面）。
-     */
-    public static List<Box> currentVolumes(PlayerEntity candidate) {
-        return List.of(candidate.getBoundingBox().expand(M1903A4Rules.HIT_MARGIN));
-    }
-
-    /**
-     * Legacy crosshair query kept only until the coordinator removes it at merge (the client package owns the new
-     * reticle): charging and a living survival player on the block-clipped ray, current boxes, no role data.
-     * 旧的准星查询，仅保留到协调者合并时删除（新准星由客户端工作包负责）：正在蓄力，且按方块截断的射线上有存活的生存模式玩家，
-     * 使用当前箱体，不读取职业数据。
-     */
-    @Deprecated
-    public static boolean aimsAtTarget(PlayerEntity shooter) {
-        return shooter.isUsingItem() && ControlExpertTaserTargeting.findTarget(shooter, RANGE,
-                shooter.getWorld().getPlayers(), GameFunctions::isPlayerAliveAndSurvival,
-                M1903A4Combat::currentVolumes) != null;
-    }
 }

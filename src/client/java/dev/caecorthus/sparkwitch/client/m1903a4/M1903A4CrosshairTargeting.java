@@ -4,6 +4,7 @@ import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.client.bear.smoke.SmokeTargetOcclusion;
 import dev.caecorthus.sparkwitch.client.render.WraithClientState;
 import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Combat;
+import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Rules;
 import dev.caecorthus.sparkwitch.roles.killer.magician.MagicianPlaybackEntity;
 import dev.doctor4t.wathe.game.GameFunctions;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -55,7 +56,10 @@ public final class M1903A4CrosshairTargeting {
         if (block.getType() != HitResult.Type.MISS) {
             end = block.getPos();
         }
-        Entity target = M1903A4CrosshairRules.nearest(eye, end, candidates(player, eye, end), Entity::getBoundingBox);
+        // Boxes grow by the server shot's margin, so the hint and the shot agree on the same edge.
+        // 箱体按服务端射击的余量扩大，使提示与射击对边缘的判定一致。
+        Entity target = M1903A4CrosshairRules.nearest(eye, end, candidates(player, eye, end),
+                entity -> entity.getBoundingBox().expand(M1903A4Rules.HIT_MARGIN));
         // The round stops at the nearest candidate, so one hidden by BEAR smoke keeps the hint dark (hint only).
         // 子弹停在最近的候选者处，因此被 BEAR 烟雾挡住的候选者让提示保持熄灭（仅提示）。
         return target != null && !SmokeTargetOcclusion.hides(player, target);
