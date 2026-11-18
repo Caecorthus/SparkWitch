@@ -191,7 +191,7 @@ def compatibilityBaselines = [
         sparkfactionapi: [
                 property: "sparkfactionapi_version",
                 version: "2.0.0",
-                sha256: "21e662034bc4f0ec80d6c866100e1df49982d38a1da7a778e0481d2d9a18d48c",
+                sha256: "6eac3fc345a7bdbf7ba4beba9f5342a5e8a120f967bccc1c2f01319a50d59421",
                 depends: [wathe: ">=1.5.6-spark-1.21.1"]
         ]
 ]
