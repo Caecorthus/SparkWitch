@@ -160,8 +160,9 @@ Current build baseline:
 - SparkFactionAPI floor `2.0.0` (native Wathe factions: the `sparkfactionapi:native_wathe_factions` declaration,
   `bindRoleFaction`, `FactionDefinition.neutralAligned` / `dealtInWatheNeutralPool`, first shipped as `0.1.6.0`; the
   third-faction draw, `FactionCategory.THIRD_FACTION`, `registerThirdFactionLineup` and the third-faction settings,
-  in the 2.0.0 jar rebuilt on 2026-11-16; re-pinned 2026-11-17 in `build.gradle` `compatibilityBaselines`, sha256
-  `21e662034bc4…`, with the two 狮身豪 payload-policy rows). Every `0.1.5.13`+ feature (two-row limited inventory,
+  in the 2.0.0 jar rebuilt on 2026-11-16; re-pinned 2026-11-18 in `build.gradle` `compatibilityBaselines`, sha256
+  `6eac3fc345a7…`, built from SparkFactionAPI `633126a`: the 狮身豪 payload-policy rows plus Fabric Loader 0.17.2,
+  so its `fabric.mod.json` asks for `fabricloader >=0.17.2`). Every `0.1.5.13`+ feature (two-row limited inventory,
   `compat/SparkFactionSecondRowCompat`, settlement exclusions) is therefore present, so SparkWitch no longer detects the
   inventory version and registers settlement exclusions directly.
 
