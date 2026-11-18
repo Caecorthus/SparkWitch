@@ -37,7 +37,9 @@ public final class MurderSenseAbility {
             // USEC AXMC (outside wathe:guns, so it needs its own entry). / USEC 的 AXMC（不在 wathe:guns 中，需单独列出）。
             SparkWitch.id("usec_rifle"),
             // Sphinx Hao "手"枪 (outside wathe:guns, so it needs its own entry). / 狮身豪“手”枪（不在 wathe:guns 中，需单独列出）。
-            SparkWitch.id("sphinx_hao_hand_gun")
+            SparkWitch.id("sphinx_hao_hand_gun"),
+            // Sniper M1903A4 (outside wathe:guns, so it needs its own entry). / 狙击手 M1903A4（不在 wathe:guns 中，需单独列出）。
+            SparkWitch.id("m1903a4")
     );
 
     private MurderSenseAbility() {
