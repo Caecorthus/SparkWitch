@@ -1,11 +1,11 @@
 package dev.caecorthus.sparkwitch.item.m1903a4;
 
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
+import dev.caecorthus.sparkwitch.util.ServerDisconnectCleanup;
 import dev.doctor4t.wathe.api.event.KillPlayer;
 import dev.doctor4t.wathe.api.event.ResetPlayer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
@@ -57,12 +57,9 @@ public final class M1903A4Gunplay {
         }
         registered = true;
         ServerTickEvents.END_SERVER_TICK.register(M1903A4Gunplay::tick);
-        // Fabric may fire DISCONNECT on the Netty thread; the map is only touched on the server thread.
-        // Fabric 可能在 Netty 线程触发 DISCONNECT；该映射只在服务端线程访问。
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            UUID uuid = handler.getPlayer().getUuid();
-            server.execute(() -> STATES.remove(uuid));
-        });
+        // The shared cleanup hop runs this on the server thread before Wathe's ESCAPED kill and the save; the map is
+        // only touched on the server thread. / 共享清理在服务端线程、Wathe 的 ESCAPED 击杀与保存之前运行；该映射只在服务端线程访问。
+        ServerDisconnectCleanup.register((player, server) -> STATES.remove(player.getUuid()));
         KillPlayer.AFTER.register((victim, killer, deathReason) -> reset(victim));
         ResetPlayer.EVENT.register(M1903A4Gunplay::reset);
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> STATES.clear());
