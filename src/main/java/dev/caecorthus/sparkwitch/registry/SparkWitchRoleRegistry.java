@@ -1332,11 +1332,15 @@ public final class SparkWitchRoleRegistry {
                 .canSeeTime(true)
                 .appearanceCondition(context -> false)
                 .build());
-        // The Sniper (owner 2026-11-17) is a third Team Jiahao member with the Corrupt Cop's profile. It is registered
-        // before the Insider so the Insider stays the last entry (InsiderRegistrationContractTest) and never appears in
-        // random rolling: owners will rework role drawing, so admins hand it out for now.
-        // 狙击手（所有者 2026-11-17）是第三名嘉豪阵营成员，参数与黑警相同。注册在内应之前，使内应仍是最后一项
-        //（InsiderRegistrationContractTest），且不进入随机抽取：所有者之后会重做刷新规则，目前由管理员发放。
+        // The Sniper (owner 2026-11-17) is another Team Jiahao member (native Wathe JIAHAO) with the Corrupt Cop's
+        // profile, registered right after 狮身豪 and right before the Insider, so the Insider stays the last entry
+        // (InsiderRegistrationContractTest). It never appears in random rolling (owners will rework role drawing, so
+        // admins hand it out for now); a forced Sniper fills Team Jiahao's partner seat beside the Corrupt Cop
+        // (JiahaoThirdFactionLineup). Never a Witch-skill role: kept out of isRegisteredSparkWitchRole.
+        // 狙击手（所有者 2026-11-17）是另一名嘉豪阵营成员（原生 Wathe JIAHAO），参数与黑警相同，注册在狮身豪之后、紧挨内应之前，
+        // 使内应仍是最后一项（InsiderRegistrationContractTest）。不进入随机抽取（所有者之后会重做刷新规则，目前由管理员发放）；
+        // 强制指定的狙击手占用黑警旁的嘉豪阵营同伴席位（JiahaoThirdFactionLineup）。不是魔女技能职业：不加入
+        // isRegisteredSparkWitchRole。
         sniper = SparkFactionApi.registerRole(FactionRoleDefinition.builder(SNIPER_ID, SparkWitchFactions.JIAHAO)
                 .color(SniperRules.COLOR)
                 .moodType(Role.MoodType.FAKE)

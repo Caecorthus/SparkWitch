@@ -26,9 +26,10 @@ public final class InsiderRules {
     /** RGB of NoellesRoles' {@code new Color(25, 50, 100)}, without its alpha byte. / NoellesRoles 黑警颜色的 RGB，不含 alpha。 */
     public static final int CORRUPT_COP_COLOR = 0x193264;
     /**
-     * Team Jiahao's own faction color, tuhao gold, separate from both members' role colors: the end title of a Team
-     * Jiahao win and the "嘉豪同伙" label.
-     * 嘉豪阵营自己的阵营色（土豪金），与两名成员的职业色都不同：用于嘉豪阵营胜利的结算标题与“嘉豪同伙”标签。
+     * Team Jiahao's own faction color, tuhao gold, separate from every member's role color (Corrupt Cop, Insider,
+     * Sphinx Hao, Sniper): the end title of a Team Jiahao win and the "嘉豪同伙" label.
+     * 嘉豪阵营自己的阵营色（土豪金），与每名成员（黑警、内应、狮身豪、狙击手）的职业色都不同：用于嘉豪阵营胜利的结算标题与
+     * “嘉豪同伙”标签。
      */
     public static final int TEAM_JIAHAO_COLOR = 0xFFC125;
 

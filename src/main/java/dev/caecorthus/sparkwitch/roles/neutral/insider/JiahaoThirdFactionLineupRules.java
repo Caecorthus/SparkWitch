@@ -8,19 +8,23 @@ import java.util.function.BooleanSupplier;
  * Pure Team Jiahao lineup for SparkFactionAPI's round-start third-faction draw (owner, 2026-11-16 and Sphinx Hao Q1
  * 2026-11-17): one NoellesRoles Corrupt Cop, plus one partner when a second slot is free. The partner is the Insider or
  * 狮身豪 Sphinx Hao, 50/50 from a coin the caller flips; when only one of them is enabled, that one. Team Jiahao never
- * has more than {@link #MAX_MEMBERS} members from the draw: forced members (a forced Sphinx Hao counts like an Insider)
- * count toward it and are always kept, and the draw never deals a partner beside a present one, so never both an
- * Insider and a Sphinx Hao. The old "only with 4+ killers" pairing rule is gone, and the Corrupt Cop is no longer drawn
+ * has more than {@link #MAX_MEMBERS} members from the draw: forced members (a forced Sphinx Hao or Sniper counts like an
+ * Insider) count toward it and are always kept, and the draw never deals a partner beside a present one, so never both
+ * an Insider and a Sphinx Hao, and never either beside a forced Sniper. The Sniper is never drawn: it has no seat. The old "only with 4+ killers" pairing rule is gone, and the Corrupt Cop is no longer drawn
  * by Wathe's neutral pass. Without a Corrupt Cop (NoellesRoles absent or the role disabled) and none forced, the
  * faction is not drawable.
  * SparkFactionAPI 开局“第三阵营”抽取中嘉豪阵营的纯阵容规则（所有者 2026-11-16 及狮身豪 Q1 2026-11-17）：一名 NoellesRoles
  * 黑警，有第二个空位时再加一名同伴。同伴为内应或狮身豪，各 50%，由调用方抛的硬币决定；只有其中一个启用时就是它。经由抽取
- * 的嘉豪阵营成员从不超过 {@link #MAX_MEMBERS} 名：强制指定的成员（强制的狮身豪与内应同样计入）计入其中且始终保留；已有同伴
- * 时抽取不再发放同伴，因此从不同时出现内应与狮身豪。旧的“至少 4 名杀手才配对”规则已取消，黑警也不再由 Wathe 中立分配
+ * 的嘉豪阵营成员从不超过 {@link #MAX_MEMBERS} 名：强制指定的成员（强制的狮身豪或狙击手与内应同样计入）计入其中且始终保留；
+ * 已有同伴时抽取不再发放同伴，因此从不同时出现内应与狮身豪，也从不在强制的狙击手旁再发放二者之一。狙击手从不被抽取：它没有
+ * 席位。旧的“至少 4 名杀手才配对”规则已取消，黑警也不再由 Wathe 中立分配
  * 抽取。没有可用黑警（未安装 NoellesRoles 或该职业被禁用）且没有强制指定时，本阵营不可抽取。
  */
 public final class JiahaoThirdFactionLineupRules {
-    /** One Corrupt Cop and one partner (Insider or Sphinx Hao). / 一名黑警与一名同伴（内应或狮身豪）。 */
+    /**
+     * One Corrupt Cop and one partner (a drawn Insider or Sphinx Hao, or a forced Sniper).
+     * 一名黑警与一名同伴（抽到的内应或狮身豪，或强制指定的狙击手）。
+     */
     public static final int MAX_MEMBERS = 2;
 
     private JiahaoThirdFactionLineupRules() {
