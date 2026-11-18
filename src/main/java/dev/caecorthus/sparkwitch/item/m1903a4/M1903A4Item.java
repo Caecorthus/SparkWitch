@@ -146,6 +146,11 @@ public class M1903A4Item extends BowItem {
         }
         if (player instanceof ServerPlayerEntity serverPlayer) {
             M1903A4Gunplay.onLoaded(serverPlayer);
+            NbtCompound extra = new NbtCompound();
+            extra.putString("action", "reload");
+            extra.putInt("loaded_rounds", getLoadedRounds(rifle));
+            dev.doctor4t.wathe.record.GameRecordManager.recordItemUse(
+                    serverPlayer, SparkWitchItems.M1903A4_ID, null, extra);
         }
         player.currentScreenHandler.sendContentUpdates();
         return true;

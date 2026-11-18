@@ -2268,5 +2268,6 @@
   "item.sparkwitch.ammo_3006.tooltip": "Loads the M1903A4. Bought in the Sniper shop.",
   "item.sparkwitch.m1903a4.tooltip.line1": "Loaded: %s / %s",
   "item.sparkwitch.m1903a4.tooltip.line2": "Right-click the rifle with ammunition in the inventory, or use the ammunition while the rifle is in the other hand.",
-  "item.sparkwitch.m1903a4.tooltip.empty": "(empty)"
+  "item.sparkwitch.m1903a4.tooltip.empty": "(empty)",
+  "replay.item_use.sparkwitch.m1903a4.reload": "%s loaded the §6M1903A4§r to %s rounds"
 }
