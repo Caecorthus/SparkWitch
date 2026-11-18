@@ -57,6 +57,9 @@ public final class SparkWitchItemGroups {
                                     // 狮身豪's hand gun and fist ammo (Team Jiahao) / 狮身豪的手枪与拳头子弹（嘉豪阵营）
                                     SparkWitchItems.sphinxHaoHandGun(),
                                     SparkWitchItems.sphinxHaoFistAmmo(),
+                                    // The Sniper's M1903A4 and .30-06 rounds (Team Jiahao) / 狙击手的 M1903A4 与 .30-06 子弹（嘉豪阵营）
+                                    SparkWitchItems.m1903a4(),
+                                    SparkWitchItems.ammo3006(),
                                     // Civilian / 平民
                                     SparkWitchItems.perfumeEssence(),
                                     SparkWitchItems.cologne(),

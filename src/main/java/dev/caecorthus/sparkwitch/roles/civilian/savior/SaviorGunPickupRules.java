@@ -92,11 +92,17 @@ public final class SaviorGunPickupRules {
         return isRestrictedSavior(player) && holdsLockedRevolver(player.getInventory(), slot);
     }
 
-    /** Guns other than the Savior's own weapons. / 救世主自有武器以外的枪械。 */
+    /**
+     * Guns other than the Savior's own weapons that any holder can fire: the Sniper's M1903A4 joins like the AXMC (both
+     * outside {@code wathe:guns}, neither role-gated). 狮身豪's "手"枪 is left out: it fires only for a Sphinx Hao.
+     * 救世主自有武器以外、任何持有者都能开火的枪械：狙击手的 M1903A4 与 AXMC 一样列入（二者都不在 {@code wathe:guns} 中，
+     * 也都不限职业）。狮身豪的“手”枪不列入：它只对狮身豪开火。
+     */
     public static boolean isForeignGun(ItemStack stack) {
         return stack.isIn(WatheItemTags.GUNS)
                 || stack.isOf(SparkWitchItems.doubleBarrelShotgun())
                 || stack.isOf(SparkWitchItems.usecRifle())
+                || stack.isOf(SparkWitchItems.m1903a4())
                 || stack.isOf(SparkWitchItems.shriekGun());
     }
 

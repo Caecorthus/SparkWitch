@@ -28,6 +28,9 @@ public final class InsiderCohortRules {
     public static boolean isJiahaoCohortPair(@Nullable Role viewerRole, @Nullable Role targetRole) {
         return InsiderParticipation.isTeamRole(viewerRole)
                 && InsiderParticipation.isTeamRole(targetRole)
-                && (InsiderParticipation.isPartnerRole(viewerRole) || InsiderParticipation.isPartnerRole(targetRole));
+                && (InsiderParticipation.isPartnerRole(viewerRole)
+                || InsiderParticipation.isPartnerRole(targetRole)
+                || InsiderParticipation.isSniperRole(viewerRole)
+                || InsiderParticipation.isSniperRole(targetRole));
     }
 }

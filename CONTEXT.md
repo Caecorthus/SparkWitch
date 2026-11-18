@@ -85,6 +85,12 @@ cooldown, then 30 s from the window's end): for 10 s it and every living infecte
 every instinct, while 《Fade》 plays for every client; it earns (infected crawlers + 1) x 5 hao, and the window's end clears
 every infection. Its shop sells 拳头子弹 for 10 hao; a loaded gun fires one fist 25 blocks whose hit is an ordinary
 kill (a kill gives 3 s Glowing and 10 s Speed I; anything else +5 hao and 3 s Speed III).
+It also adds the Sniper (`sparkwitch:sniper`, 狙击手, contributed in PR #245 and reworked in review), a further Team
+Jiahao member that wins, co-wins and blocks wins as the Insider does but is never drawn (admins force it for now; a
+forced Sniper fills the team's partner seat, so the draw adds only the Corrupt Cop). It starts with 0 coins, earns 50
+per task, sells .30-06 rounds (25, unlimited) and a crowbar (25, one per round), gets SparkStrength's police tablet,
+and carries the M1903A4: a five-round bolt-action rifle (60 s opening cooldown, 10 s after a shot) whose release fires
+one server-authoritative 50-block hitscan with Wathe's gunshot death reason.
 Since 2026-11-04 the witch faction (`sparkwitch:witch`) and Team Jiahao (`sparkwitch:jiahao`) are real Wathe
 `Faction` constants (WITCH, JIAHAO), declared in `fabric.mod.json` under
 `custom."sparkfactionapi:native_wathe_factions"` and appended by SparkFactionAPI `0.1.6.0`; they are no longer
@@ -1338,6 +1344,13 @@ Current build baseline:
     rows, the end title, the cohort label and the Team Jiahao instinct views take any partner; a round with Insiders
     only behaves byte-for-byte as before. Insider-only features (kit, doors, shop, task money, `PoliceRoles`) keep
     `isInsiderRole` / `isInsider`; 狮身豪's own live in `roles/neutral/sphinxhao/`.
+  - The Sniper (PR #245) is a Team Jiahao member but not a partner: `isTeamRole` includes it, `isPartnerRole` stays
+    Insider or 狮身豪, and every place that should treat it like a partner asks `isSniperRole` too (instinct views,
+    the cohort label, killer-style instinct light). `JiahaoTeamWinRules.Kind.SNIPER.partner()` is true, so a Sniper
+    alone turns the team rules on; the tie order is CORRUPT_COP < INSIDER < SPHINX_HAO < SNIPER, so a living Insider
+    or 狮身豪 outranks it as the primary winner. `JiahaoThirdFactionLineup.rolesFor` counts a pre-round forced Sniper
+    as the present partner (SparkFactionAPI already counts it toward the faction cap), so `MAX_MEMBERS = 2` holds and
+    the draw only adds the Corrupt Cop.
 - `roles/neutral/stowaway/`: Stowaway (`sparkwitch:stowaway`) rules, the opening loadout (`StowawayLoadoutService`),
   the settlement exclusion and round-end row rule (`StowawaySettlement`, `StowawayWinScope`), and the kill reward
   (`StowawayKillRewardService`). Its mixins live in `mixin/stowaway/`; client presentation (senses, the Survival
@@ -1652,6 +1665,62 @@ Current build baseline:
     constructed in unit tests (its static CCA key needs a bootstrap), so window reads are pinned in source.
   - Open: no mood flag sprite (`MoodFlags.ROLE_FLAGS` has no entry, so Wathe's flag shows); nothing of it (crawl pose,
     veto, 《Fade》, HUD, the gun's `display`, arm pose and lattice) has been seen in a real client yet.
+- `roles/neutral/sniper/` + `item/m1903a4/`: the Sniper (`sparkwitch:sniper`, color `0xA5B382`, PR #245) and its
+  M1903A4 rifle; numbers and ids in `SniperRules` and `M1903A4Rules`. Client presentation in `client/m1903a4/` and
+  `client/mixin/m1903a4/`.
+  - Registration: right before the Insider (which stays last) and guessed right after 狮身豪; JIAHAO faction, Corrupt
+    Cop profile, `appearanceCondition` false (never drawn), and `PoliceRoles.register(SNIPER_ID)` like the Insider (D4:
+    SparkStrength police channel, chat, elector and identity reveal; it never takes a cop slot and is not innocent,
+    so SparkTraits police traits never apply). Never a Witch-skill role.
+  - Hub: `SniperFeatureService` is the only Sniper line in `SparkWitchEvents` (after 狮身豪's hub, before USEC, which
+    stays last) and registers, in order, `SniperLoadoutService`, `SniperEconomyService` (with `SniperShopService`),
+    `M1903A4Gunplay`, `M1903A4Replay`, and a `ShouldPunishGunShooter` cancel (Insider D5 parity for a picked-up
+    revolver).
+  - Kit, economy, shop: `ON_FINISH_INITIALIZE` gives each living Sniper one M1903A4 (offer or drop) and writes the 60 s
+    opening lock on the holder; no master key. `RoleAssigned` sets 0 coins, `TaskComplete` pays 50, `CanSeeMoney`
+    ALLOW while alive. The shop (SparkTraits entries preserved) sells `sparkwitch:ammo_3006` (25, weapon frame,
+    unlimited, bought through `UsecShopPurchase.buyRound` so rounds top up an existing stack) and a Wathe crowbar (25,
+    tool frame, stock 1).
+  - Rifle (`M1903A4Item`, a `BowItem`): five rounds in CUSTOM_DATA `LoadedRounds`, `maxCount(1)`,
+    `allowComponentsUpdateAnimation` false. Loading (`tryReload`, server-authoritative): right-click the rifle with
+    rounds in the inventory, or use rounds in the main hand with the rifle in the off hand; each load records an
+    item_use (`action=reload`). Only the main hand charges (an off-hand rifle passes, so a failed load never falls
+    through into a shot). `M1903A4Combat.decide` is asked at charge start AND at release; a refused release spends
+    nothing: not a MATCH (`OffMatchUse`), not main hand, spectator, held (Control Expert stun, Seeker remote lock,
+    Kidnapper control, active Wraith, Dominator forced-shot sequence), SparkTraits `blocksWeaponAction`, cooling down
+    (covers the Knight seal and every forced cooldown), or empty. SparkStrength's Engineer stun and Taotie daze clear
+    the active item when they start (SparkStrength companion), so their forced key release cannot fire it.
+  - Shot (`M1903A4Combat.fire`, the 狮身豪 fist structure): spend the round, write the 10 s cooldown, then one eye ray of
+    50 blocks cut at the first collider block, the nearest eligible player (`RoundParticipants.ROLE_HOLDER`, SFA
+    `canAffectPlayer(…, wathe:gun_shot)`, not Last Escape, Vendetta isolation) on lag-compensated volumes
+    (`PlayerHitboxHistory`, margin 0.1), then nearest wins against a Raven Form crow
+    (`BlackRavenCrowHits.onM1903A4Fired`, owner substituted), a Magician puppet (`m1903a4PuppetOnRay` /
+    `endM1903A4Puppet`, Wathe gun reason, the shot is no kill) and the frozen Seeker seam
+    `SeekerDeviceHits.onM1903A4Fired(shooter, picked, 50.0)` (SparkStrength hooks it by name for Partygoers and Bomber
+    drones; `m1903a4Absorber` is the read-only preview). `RangedSmokeCarve.ray` cuts a BEAR smoke tunnel and white
+    smoke marks the path. One non-forced `killPlayer(victim, true, shooter, GameConstants.DeathReasons.GUN)`, so BEAR
+    ricochet, the Bodyguard vest, Knight duel rules and every killPlayer veto apply. No aim payload: the shot uses the
+    server's current rotation, which can trail the client's release by about a tick. No sleeper fallback. Inherited from
+    the fist's seams, not resolved here: the player is picked on rewound volumes while the puppet and device steps
+    measure current boxes, a crow is taken before the owner's eligibility is asked, and SparkStrength's HEAD hook on
+    `onM1903A4Fired` (Partygoer, drone) runs before SparkWitch's own nearer device, ending the smoke at the ray's end.
+  - Replay and sounds: the shot is recorded before the kill (`hit` flag; `replay.item_use.sparkwitch.m1903a4.shot` /
+    `.miss` / `.reload`). `M1903A4Gunplay` (server only) plays open bolt on the first load, the seat sound 0.8 s per
+    round, the closing bolt when a 2 s reload window lapses, the shot (mono, positional) and the bolt 1 s later; its
+    state clears on disconnect, death, Wathe `ResetPlayer` and server stop. The kill confirmation plays only to the
+    shooter and only for a real terminal death (`M1903A4Rules.confirmsKill`, SparkTraits interception included).
+  - Cooldowns (`M1903A4Cooldowns`, `UsecCooldowns` model): every write is `max(existing, ticks)` through
+    SparkTraits' exact setter, so a reload's 2 s floor never shortens a Fiend aura, Abyss suppression, AC shell or
+    Saint penalty. Nominal 200 ticks (the shot) in `SparkWitchItemCooldownNominals`; the opening lock is a round-start
+    write, the reload floor is not a nominal.
+  - Other lists: the rifle is on `MurderSenseAbility.DANGEROUS_ITEM_IDS` and is a foreign gun for
+    `SaviorGunPickupRules` (any holder can fire it, like the AXMC). It is not bound: it stays in a dead Sniper's
+    inventory and a Ragpicker can loot it with its rounds.
+  - Client: `M1903A4CrosshairMixin` (`@ModifyExpressionValue` on Wathe's `CROSSHAIR` read, like the sibling hints)
+    asks `client/m1903a4/M1903A4CrosshairTargeting` (main-hand charge off cooldown, block-clipped 50-block ray, nearest
+    visible living non-Wraith player or live puppet, boxes grown by the shot's margin, then `SmokeTargetOcclusion`).
+    `M1903A4ChargeWobbleMixin` wraps only the bow-sway translate (slice from the bow case's `20.0F`) and
+    `M1903A4AimPoseMixin` shifts the main-hand rifle while it is the active hand.
 - `roles/witch/`: rules shared by Grand Witch and Accomplice.
   - Other-witch roles (owner 2026-11-13): `OtherWitchRoles` is the one list of roles the Grand Witch's instinct
     specially recognises, by role id: the Apprentice Witch, the Murderous Witch and the Witch Trial girls (魔裁,
@@ -2152,7 +2221,7 @@ Current build baseline:
     the cooldown still running on the confiscated weapon through `SaviorCooldowns.carryOver`), mood 0, gun pickup
     blocked, `KILL_SHOOTER` kills a good shooter with `shot_innocent`; the pistol also rolls Wathe's backfire for a
     good shooter. The punished Savior goes on with that plain Wathe revolver. The gun-pickup rules (`SaviorGunPickupRules` + three mixins) veto only foreign guns (Wathe `guns`, Hunter
-    shotgun, AXMC, Shriek Gun) and refuse server-side every click, swap or pick-from-inventory that would move the
+    shotgun, AXMC, Shriek Gun, M1903A4) and refuse server-side every click, swap or pick-from-inventory that would move the
     hidden revolver out of rows 9–26. Only the punishment moves it; once in the hotbar it is an ordinary item, and
     `SaviorGunPickupRules.blocksInsert` lets it back into the inventory (cursor stack on screen close or disconnect)
     while the Savior carries no other revolver. Ground pickup of any gun stays refused. Wathe fires that revolver
@@ -2786,8 +2855,8 @@ Current build baseline:
     `occlusion/SmokeLabelOcclusion` (optical depth ≥ `HIDDEN_OPTICAL_DEPTH` to where the look ray enters the 0.3-grown
     box), a Magician puppet, Raven Form crow or Seeker device by the same rule; with no cloud it returns its input.
     `mixin/bear/SmokeCrosshairHintMixin` (three entries in `watheClientMixinContracts`) filters Wathe's gun, knife and
-    bat hint reads in `renderCrosshair`; the AXMC, Hunter shotgun, Taser, Shriek Gun, Clock, Swordfish and cross-sword
-    hints and the witch / Team Jiahao cohort labels ask the same helper. `SmokeRoleNameRaycastMixin` runs at priority
+    bat hint reads in `renderCrosshair`; the AXMC, Hunter shotgun, Taser, Shriek Gun, Clock, Swordfish, M1903A4 and
+    cross-sword hints and the witch / Team Jiahao cohort labels ask the same helper. `SmokeRoleNameRaycastMixin` runs at priority
     1100, after the puppet widening. Presentation only: never ask it from a selector a shot, stab or packet is built
     from. SparkStrength's own HEAD-cancelled crosshairs (Serial Killer pistol, Morphling reagent, Professor serum) are
     not covered.
@@ -3975,7 +4044,8 @@ the Raven on top of the host's own alive test:
 
 Stowaway rules (owner spec 2026-11-02, PR #178). Profile: Wathe-native neutral, FAKE mood with tasks (tasks pay
 nothing), infinite stamina (`maxSprintTime(-1)`), no round clock, no appearance condition; registered right before
-the Insider and guessed right after it and 狮身豪 (which follows the Insider since 2026-11-17), before the promotion tail.
+the Insider and guessed right after it, 狮身豪 (which follows the Insider since 2026-11-17) and the Sniper (which follows
+狮身豪 since PR #245), before the promotion tail.
 - Loadout: a SparkWitch `ON_FINISH_INITIALIZE` phase after the default one strips every room key and role letter
   (crafting grid included) and grants one lockpick.
 - Settlement: the Stowaway never counts as alive for any win, block or moment. Every `CheckWinCondition` listener
@@ -4368,7 +4438,9 @@ bullet path through `SeekerDeviceHits.onUsecRifleFired`, called after the Magici
 blocks it pierced), and the 狮身豪 "手"枪 fist (`SPHINX_HAO_FIST`, appended last after the Witch Maiden's
 `CRIMSON_SKULL`, 2026-11-17: the server's rewound eye ray through the frozen `SeekerDeviceHits.onSphinxHaoFistFired`,
 called once per shot after the crow and puppet steps; SparkStrength hooks its HEAD by name for the Partygoer and the
-Bomber drone). A client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol)
+Bomber drone), and the Sniper's M1903A4 (`M1903A4`, appended last after `SPHINX_HAO_FIST`, PR #245: the same rewound
+eye ray through the frozen `SeekerDeviceHits.onM1903A4Fired`, full 50-block range, also hooked by SparkStrength). A
+client-picked gun hit (Wathe revolver and derringer, Demon Hunter pistol)
 is accepted when the shooter's look ray meets the device box grown by its client targeting margin with
 a clear line to a point of the device, else only through the 25° / 15-point-sample latency fallback
 (`SeekerDamageRules.gunAimedAndVisible`); nothing breaks through walls. The SparkStrength Serial Killer pistols
@@ -4599,9 +4671,10 @@ through that answer. The shop is rebuilt on both sides, gated on the exact role 
 clear, revolver 150 and crowbar 50, each stock 1, then restore. The tablet is not sold: the Insider is in SFA
 `PoliceRoles`, so SparkStrength issues it a free tablet at round start on the police channel. That also makes it a
 SparkStrength police elector for meetings and votes (`TabletChannelResolver.isPoliceElector`).
-Team Jiahao (every Corrupt Cop, every Insider and, since 2026-11-17, every 狮身豪, by current role) applies only in a
-round that has a SparkWitch partner, an Insider or a 狮身豪 (`InsiderParticipation.isPartnerRole`: any role-map entry
-with a partner role, online or not, dead or alive); without one, all three wraps below
+Team Jiahao (every Corrupt Cop, every Insider and, since 2026-11-17, every 狮身豪, and since PR #245 every Sniper, by
+current role) applies only in a round that has a SparkWitch team member other than the Corrupt Cop, an Insider, a 狮身豪
+or a Sniper (`JiahaoTeamWinRules.Kind.partner()`: any role-map entry of such a kind, online or not, dead or alive; the
+Sniper counts here although `InsiderParticipation.isPartnerRole` stays Insider or 狮身豪); without one, all three wraps below
 return NoellesRoles' own value, so several forced Corrupt Cops behave exactly as in NoellesRoles (same single
 winner); only the end title changed (owner D7, 2026-11-04, overturning that part of C13): a lone Corrupt Cop win also
 reads "嘉豪胜利！", over NoellesRoles' own Corrupt Cop subtitle. With a partner it wins inside NoellesRoles' Corrupt Cop win branch, so NoellesRoles' win order stays Vulture > Survival Master > Pathogen > Jester > Taotie > Team Jiahao >
@@ -4616,9 +4689,9 @@ NoellesRoles' own. Wathe titles a neutral win by the first winning round-end row
 `mixin/insider/GameRoundEndComponentJiahaoTitleMixin`, just before the explicit-winner sync, handles a Team
 Jiahao win (a winning team row in a round with a partner): it marks every other team row as a winner, offline
 `LEFT` / `LEFT_DEAD` rows included, then moves a row of the lead partner's kind first (`JiahaoTeamWinRules.leadPartner`:
-the primary's kind; with every partner offline, an Insider if the round has one, else 狮身豪; the row the win named,
-else any; the other partner kind only when none exists), so a round with Insiders only still leads with an Insider
-row. The end
+the primary's kind; with every partner offline, an Insider if the round has one, else 狮身豪, else a Sniper; the row
+the win named, else any; the other partner kinds, in `Kind` order, only when none exists), so a round with Insiders
+only still leads with an Insider row. The end
 screen reads "嘉豪胜利！" over "整列列车的人都被嘉豪们豪完了", and Wathe's `didWin` and `GameRecordManager.endMatch`
 read the same rows. Every other win keeps Wathe's rows. Team Jiahao has its own faction color,
 `InsiderRules.TEAM_JIAHAO_COLOR` (tuhao gold `0xFFC125`), apart from the Insider's mint and the Corrupt Cop's navy:

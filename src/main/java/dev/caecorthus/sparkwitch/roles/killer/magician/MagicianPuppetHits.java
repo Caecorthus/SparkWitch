@@ -91,6 +91,11 @@ public final class MagicianPuppetHits {
      */
     static final double SPHINX_HAO_FIST_BOX_EXPANSION = 0.2;
     /**
+     * Player box growth of the Sniper M1903A4 pick ({@code M1903A4Rules.HIT_MARGIN}), given to the puppet too.
+     * 狙击手 M1903A4 选取玩家时的箱体扩大量（{@code M1903A4Rules.HIT_MARGIN}），皮套相同。
+     */
+    static final double M1903A4_BOX_EXPANSION = 0.1;
+    /**
      * SparkStrength M67 kill radius ({@code M67Rules.BLAST_RADIUS}: 5.0 since SparkStrength 3fa84e9, 2026-10-03).
      * SparkStrength M67 击杀半径（自 SparkStrength 3fa84e9 起为 5.0）。
      */
@@ -311,6 +316,45 @@ public final class MagicianPuppetHits {
                                                  MagicianPlaybackEntity puppet) {
         return MagicianPlaybackManager.endPuppet(puppet, shooter, SparkWitchDeathReasons.SPHINX_HAO_FIST,
                 gun == null ? null : gun.getTranslationKey());
+    }
+
+    /**
+     * Sniper M1903A4 single rewound eye ray (server, read-only, on bow release), after the Raven Form step and before
+     * the Seeker step: the live foreign puppet whose box (grown by {@link #M1903A4_BOX_EXPANSION}, the rifle's player
+     * margin) the block-clipped ray {@code start -> end} enters strictly nearer than {@code target} and every breakable
+     * device, else null. Nothing is ended here; {@link #endM1903A4Puppet} writes. Same nearest-wins as the fist.
+     * 狙击手 M1903A4 的单条回溯眼睛射线（服务端，只读，松开蓄力时），在化鸦步骤之后、搜寻者步骤之前：按方块截断的射线
+     * {@code start -> end} 严格早于 {@code target} 与所有可打坏设备进入其箱体（按 {@link #M1903A4_BOX_EXPANSION}，即步枪的玩家
+     * 余量扩大）的他人活皮套，否则为 null。这里不结束任何东西，由 {@link #endM1903A4Puppet} 写入。与拳头同样的最近者命中。
+     */
+    public static @Nullable MagicianPlaybackEntity m1903a4PuppetOnRay(ServerPlayerEntity shooter,
+                                                                     @Nullable PlayerEntity target, Vec3d start,
+                                                                     Vec3d end) {
+        if (shooter == null || shooter.getWorld().isClient() || shooter.isSpectator()
+                || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
+            return null;
+        }
+        double beat = Math.min(
+                MagicianPuppetRaycast.playerDistanceSquared(start, end, target, M1903A4_BOX_EXPANSION),
+                MagicianPuppetRaycast.breakableDeviceSquared(shooter, start, end));
+        MagicianPuppetRaycast.PuppetHit hit = MagicianPuppetRaycast.nearestHittable(shooter, start, end,
+                M1903A4_BOX_EXPANSION, beat);
+        return hit == null ? null : hit.puppet();
+    }
+
+    /**
+     * Writing half of the rifle step: ends a puppet {@link #m1903a4PuppetOnRay} returned with Wathe's {@code GUN} death
+     * reason (the rifle kills players with it too, so the decoy body reads like a real rifle kill) and the rifle's name
+     * in the replay. The Magician is paid (D4, D5); the shot still spent its round and cooldown (D3). False when it
+     * already ended.
+     * 步枪步骤的写入部分：以 Wathe 的 {@code GUN} 死因结束 {@link #m1903a4PuppetOnRay} 返回的皮套（步枪击杀玩家也用该死因，
+     * 因此诱饵尸体看起来与真正的步枪击杀一致），回放中显示步枪名称。魔术师获得报酬（D4、D5）；这一枪照常消耗子弹与冷却（D3）。
+     * 已结束时返回 false。
+     */
+    public static boolean endM1903A4Puppet(ServerPlayerEntity shooter, @Nullable ItemStack rifle,
+                                           MagicianPlaybackEntity puppet) {
+        return MagicianPlaybackManager.endPuppet(puppet, shooter, GameConstants.DeathReasons.GUN,
+                rifle == null ? null : rifle.getTranslationKey());
     }
 
     /**

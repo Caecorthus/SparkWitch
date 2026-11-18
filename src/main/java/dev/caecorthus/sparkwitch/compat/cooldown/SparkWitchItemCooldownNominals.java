@@ -7,6 +7,7 @@ import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.defense.DefenseVialRules;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerRules;
+import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Rules;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
 import dev.caecorthus.sparkwitch.item.rope.RopeRules;
@@ -147,6 +148,10 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
                     Math.max(SphinxHaoRules.GUN_FIRE_COOLDOWN_TICKS, SphinxHaoRules.GUN_LOAD_COOLDOWN_TICKS));
             // Defense Vial (PR #240): the 30 s after a finished drink. / 防御药剂（PR #240）：喝完之后的 30 秒。
             entries.put(SparkWitchItems.DEFENSE_VIAL_ID, DefenseVialRules.COOLDOWN_TICKS);
+            // Sniper M1903A4: the 10 s after a shot, not the 2 s reload floor or the 60 s round-start lock;
+            // M1903A4Cooldowns is its only writer.
+            // 狙击手 M1903A4：开火后 10 秒，而非装填后的 2 秒下限或开局 60 秒锁定；M1903A4Cooldowns 是唯一写入方。
+            entries.put(SparkWitchItems.M1903A4_ID, M1903A4Rules.SHOT_COOLDOWN_TICKS);
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).

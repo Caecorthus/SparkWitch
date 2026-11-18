@@ -42,6 +42,7 @@ public final class SparkWitchRoles {
     public static final Identifier STOWAWAY_ID = SparkWitchRoleRegistry.STOWAWAY_ID;
     public static final Identifier SCHRODINGERS_CAT_ID = SparkWitchRoleRegistry.SCHRODINGERS_CAT_ID;
     public static final Identifier INSIDER_ID = SparkWitchRoleRegistry.INSIDER_ID;
+    public static final Identifier SNIPER_ID = SparkWitchRoleRegistry.SNIPER_ID;
     public static final Identifier ABYSS_LISTENER_ID = SparkWitchRoleRegistry.ABYSS_LISTENER_ID;
     public static final Identifier POTION_GUNNER_ID = SparkWitchRoleRegistry.POTION_GUNNER_ID;
     public static final Identifier RIFTWALKER_ID = SparkWitchRoleRegistry.RIFTWALKER_ID;
@@ -214,6 +215,10 @@ public final class SparkWitchRoles {
 
     public static Role insider() {
         return SparkWitchRoleRegistry.insider();
+    }
+
+    public static Role sniper() {
+        return SparkWitchRoleRegistry.sniper();
     }
 
     public static Role abyssListener() {

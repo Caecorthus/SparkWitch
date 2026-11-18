@@ -458,6 +458,46 @@ public final class SeekerDeviceHits {
     }
 
     /**
+     * Sniper M1903A4 server targeting on bow release, mirroring the Sphinx Hao fist: a nearer breakable device absorbs
+     * the round and breaks, so nobody is hit; like the Taser a miss still breaks the nearest device in reach, because
+     * every shot spends a round and the rifle's cooldown. Frozen external seam: SparkStrength may inject at this
+     * method's HEAD by name (Partygoer / Bomber drone parity, cut at the first block) and return null when one of them
+     * takes the round, so the rifle calls it exactly once per shot with the full range, and this entry must keep its
+     * unique name and this signature.
+     * 狙击手 M1903A4 松开蓄力时的服务端目标选择，与狮身豪拳头一致：更近且可打坏的设备吸收子弹并被打坏，不命中任何人；与电击枪
+     * 相同，未命中时仍会打坏射程内最近的设备，因为每一发都要消耗子弹与步枪冷却。冻结的外部接缝：SparkStrength 可按方法名在其
+     * HEAD 注入（派对客 / 轰炸者无人机一致处理，在第一个方块处截断），在它们吃下子弹时返回 null；因此步枪每发只以满射程调用
+     * 一次，本入口必须保持唯一的方法名与此签名。
+     */
+    @Nullable
+    public static <T extends PlayerEntity> T onM1903A4Fired(ServerPlayerEntity shooter, @Nullable T target,
+                                                            double range) {
+        if (shooter == null || shooter.getWorld().isClient()) {
+            return target;
+        }
+        return rayBlocks(shooter, target, range, SeekerBreakSource.M1903A4) ? null : target;
+    }
+
+    /**
+     * Read-only preview of {@link #onM1903A4Fired} for the smoke trail's stop point: the device that call would absorb
+     * and break for the same arguments, else null. Breaks, marks and records nothing; call it first, since the break
+     * removes the device. A SparkStrength Partygoer or drone (hooked into {@link #onM1903A4Fired} only) is not seen
+     * here.
+     * {@link #onM1903A4Fired} 的只读预览，供烟迹终点使用：对相同参数该调用会吸收并打坏的设备，否则为 null。不打坏、不标记、
+     * 不记录任何内容；须先调用，因为打坏会移除该设备。SparkStrength 的派对客或无人机（只挂接在 {@link #onM1903A4Fired} 上）
+     * 在这里看不到。
+     */
+    @Nullable
+    public static SeekerDeviceEntity m1903a4Absorber(ServerPlayerEntity user, @Nullable PlayerEntity target,
+                                                     double range) {
+        if (user == null || user.getWorld().isClient()) {
+            return null;
+        }
+        SeekerDeviceRaycast.DeviceHit hit = rayBlockingHit(user, target, range);
+        return hit == null ? null : hit.device();
+    }
+
+    /**
      * Read-only preview of {@link #onShriekGunFired} for the beam particles: the device that call would absorb and
      * break for the same arguments (the same ray and the same {@link SeekerDamageRules#mayBreak} filter as
      * {@code rayBlocks}), else null. Breaks, marks and records nothing; call it before {@link #onShriekGunFired},

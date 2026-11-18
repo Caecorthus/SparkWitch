@@ -20,13 +20,14 @@ import java.util.UUID;
  * Server adapter between the Team Jiahao mixins and {@link JiahaoTeamWinRules}: it reads Wathe's role map and
  * liveness plus NoellesRoles' swallow flag (hard dependency, pinned {@code b58fa5f}), and maps the rules' UUIDs back
  * to players. Snapshots follow Wathe's role map order, which is also the order NoellesRoles' own
- * {@code getAllWithRole} walks. Members are every Corrupt Cop, Insider and Sphinx Hao
- * ({@link InsiderParticipation#isTeamRole}); in a round without a partner (Insider or Sphinx Hao) every entry point
- * returns the host value (C13). Server only.
+ * {@code getAllWithRole} walks. Members are every Corrupt Cop, Insider, Sphinx Hao and Sniper
+ * ({@link InsiderParticipation#isTeamRole}); in a round without a partner (Insider, Sphinx Hao or Sniper,
+ * {@link JiahaoTeamWinRules.Kind#partner}) every entry point returns the host value (C13). Server only.
  * 嘉豪阵营 mixin 与 {@link JiahaoTeamWinRules} 之间的服务端适配器：读取 Wathe 职业表与存活状态以及 NoellesRoles 的
  * 吞噬标记（硬依赖，固定 {@code b58fa5f}），再把规则给出的 UUID 映射回玩家。快照沿用 Wathe 职业表的顺序，也就是
- * NoellesRoles 自身 {@code getAllWithRole} 的遍历顺序。成员为所有黑警、内应与狮身豪
- * （{@link InsiderParticipation#isTeamRole}）；本局没有搭档（内应或狮身豪）时，每个入口都返回宿主原值（C13）。仅服务端。
+ * NoellesRoles 自身 {@code getAllWithRole} 的遍历顺序。成员为所有黑警、内应、狮身豪与狙击手
+ * （{@link InsiderParticipation#isTeamRole}）；本局没有搭档（内应、狮身豪或狙击手，{@link JiahaoTeamWinRules.Kind#partner}）
+ * 时，每个入口都返回宿主原值（C13）。仅服务端。
  */
 public final class JiahaoTeamWinSeam {
     private JiahaoTeamWinSeam() {
