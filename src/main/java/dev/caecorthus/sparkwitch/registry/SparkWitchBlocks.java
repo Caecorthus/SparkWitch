@@ -2,33 +2,34 @@ package dev.caecorthus.sparkwitch.registry;
 
 import dev.caecorthus.sparkwitch.SparkWitch;
 import dev.caecorthus.sparkwitch.block.SparkBedBlock;
-import dev.caecorthus.sparkwitch.block.SparkBedBlockEntity;
+import dev.doctor4t.wathe.index.WatheBlockEntities;
+import dev.doctor4t.wathe.index.WatheBlocks;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
-import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
 
 /**
- * Blocks added by this mod. There was no block registry before the two beds, so this class also owns the block entity
- * type: Fabric requires the type itself to be registered and to list every block it can back.
+ * Blocks added by SparkWitch: two map-maker beds (PR #239). They copy Wathe's trimmed bed settings and are added to
+ * Wathe's own {@code wathe:trimmed_bed} block entity type through Fabric's {@code addSupportedBlock}, so the block
+ * entity they create is Wathe's {@code TrimmedBedBlockEntity} with Wathe's type: scorpion poison, its client
+ * particles and every add-on hook that checks that type or class see them as ordinary trimmed beds. Registered from
+ * {@code SparkWitchItems.register()}, after every existing item, so earlier raw ids keep their order.
  * <p>
- * 本模组新增的方块。这两张床之前没有方块注册表，所以方块实体类型也放在这里：Fabric 要求类型自身注册，并列出它能承载的每个方块。
+ * SparkWitch 新增的方块：两张供地图作者使用的床（PR #239）。沿用 Wathe 裁剪床的方块设置，并通过 Fabric 的
+ * {@code addSupportedBlock} 加入 Wathe 自己的 {@code wathe:trimmed_bed} 方块实体类型，因此它们创建的方块实体就是
+ * 带 Wathe 类型的 {@code TrimmedBedBlockEntity}：蝎子毒、其客户端粒子以及所有按该类型或类判断的附属钩子都把它们视为
+ * 普通裁剪床。由 {@code SparkWitchItems.register()} 在所有既有物品之后注册，保持既有注册顺序。
  */
 public final class SparkWitchBlocks {
     public static final Identifier GREY_DIRTY_BED_ID = SparkWitch.id("grey_dirty_bed");
     public static final Identifier GREEN_STRANGE_BED_ID = SparkWitch.id("green_strange_bed");
-    private static final Identifier SPARK_BED_ENTITY_ID = SparkWitch.id("spark_bed");
 
     private static Block greyDirtyBed;
     private static Block greenStrangeBed;
-
-    /** Both beds share one block entity type, exactly like Wathe's two trimmed beds do. / 两张床共用一个方块实体类型，与 Wathe 的两张裁剪床一致。 */
-    public static BlockEntityType<SparkBedBlockEntity> SPARK_BED_ENTITY;
 
     private SparkWitchBlocks() {
     }
@@ -37,27 +38,19 @@ public final class SparkWitchBlocks {
         if (greyDirtyBed != null) {
             return;
         }
-        AbstractBlock.Settings settings = AbstractBlock.Settings.create()
-                .strength(0.2F)
-                .sounds(BlockSoundGroup.WOOD)
-                .nonOpaque();
-        greyDirtyBed = Registry.register(
+        greyDirtyBed = registerBed(GREY_DIRTY_BED_ID, SparkBedBlock.Variant.GREY_DIRTY);
+        greenStrangeBed = registerBed(GREEN_STRANGE_BED_ID, SparkBedBlock.Variant.GREEN_STRANGE);
+    }
+
+    private static Block registerBed(Identifier id, SparkBedBlock.Variant variant) {
+        Block bed = Registry.register(
                 Registries.BLOCK,
-                GREY_DIRTY_BED_ID,
-                new SparkBedBlock(SparkBedBlock.Variant.GREY_DIRTY, settings)
+                id,
+                new SparkBedBlock(variant, AbstractBlock.Settings.copy(WatheBlocks.WHITE_TRIMMED_BED))
         );
-        greenStrangeBed = Registry.register(
-                Registries.BLOCK,
-                GREEN_STRANGE_BED_ID,
-                new SparkBedBlock(SparkBedBlock.Variant.GREEN_STRANGE, settings)
-        );
-        SPARK_BED_ENTITY = Registry.register(
-                Registries.BLOCK_ENTITY_TYPE,
-                SPARK_BED_ENTITY_ID,
-                BlockEntityType.Builder.create(SparkBedBlockEntity::create, greyDirtyBed, greenStrangeBed).build()
-        );
-        Registry.register(Registries.ITEM, GREY_DIRTY_BED_ID, new BlockItem(greyDirtyBed, new Item.Settings()));
-        Registry.register(Registries.ITEM, GREEN_STRANGE_BED_ID, new BlockItem(greenStrangeBed, new Item.Settings()));
+        WatheBlockEntities.TRIMMED_BED.addSupportedBlock(bed);
+        Registry.register(Registries.ITEM, id, new BlockItem(bed, new Item.Settings()));
+        return bed;
     }
 
     public static Block greyDirtyBed() {

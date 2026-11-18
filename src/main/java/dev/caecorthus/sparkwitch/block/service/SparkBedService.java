@@ -5,16 +5,19 @@ import dev.doctor4t.wathe.api.event.TaskComplete;
 import dev.doctor4t.wathe.cca.PlayerMoodComponent;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 
 /**
  * Pays out the strange bed's bill. Wathe fulfils its sleep task by counting ticks while {@code isSleeping()}, then fires
  * {@link TaskComplete}; at that moment the player still records which bed they are lying in, so the block under
- * {@code getSleepingPosition()} is exactly the bed that has to be blamed.
+ * {@code getSleepingPosition()} is exactly the bed that has to be blamed. The timer adds up across beds, so the bed that
+ * finishes the task pays; an admin task completion on someone lying in the green bed pays too.
  * <p>
  * 结算奇怪床的账单。Wathe 的睡觉任务靠在 {@code isSleeping()} 期间累减 tick 完成，随后触发 {@link TaskComplete}；
- * 那一刻玩家仍然记录着自己躺在哪张床上，因此 {@code getSleepingPosition()} 指向的方块正是要算账的那张床。
+ * 那一刻玩家仍然记录着自己躺在哪张床上，因此 {@code getSleepingPosition()} 指向的方块正是要算账的那张床。计时在不同的床
+ * 之间累计，由完成任务的那张床结算；管理员对躺在绿床上的玩家强制完成任务时同样结算。
  */
 public final class SparkBedService {
     /** Debuff length the strange bed hands out, in ticks: 5 s. / 奇怪床给出的负面效果时长，tick：5 秒。 */
@@ -27,7 +30,7 @@ public final class SparkBedService {
         TaskComplete.EVENT.register(SparkBedService::onTaskComplete);
     }
 
-    private static void onTaskComplete(net.minecraft.entity.player.PlayerEntity player, PlayerMoodComponent.Task task) {
+    private static void onTaskComplete(PlayerEntity player, PlayerMoodComponent.Task task) {
         if (task != PlayerMoodComponent.Task.SLEEP || !(player instanceof ServerPlayerEntity serverPlayer)) {
             return;
         }
