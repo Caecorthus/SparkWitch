@@ -5,6 +5,7 @@ import dev.caecorthus.sparkfactionapi.api.cooldown.ItemCooldownNominalProvider;
 import dev.caecorthus.sparkwitch.SparkWitchItems;
 import dev.caecorthus.sparkwitch.compat.NoellesRoleIds;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
+import dev.caecorthus.sparkwitch.item.defense.DefenseVialRules;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerRules;
 import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Rules;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
@@ -145,6 +146,8 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             // 狮身豪的“手”枪：射击后 5 秒、装填后 1 秒；取两者较长者为标准冷却。
             entries.put(SparkWitchItems.SPHINX_HAO_HAND_GUN_ID,
                     Math.max(SphinxHaoRules.GUN_FIRE_COOLDOWN_TICKS, SphinxHaoRules.GUN_LOAD_COOLDOWN_TICKS));
+            // Defense Vial (PR #240): the 30 s after a finished drink. / 防御药剂（PR #240）：喝完之后的 30 秒。
+            entries.put(SparkWitchItems.DEFENSE_VIAL_ID, DefenseVialRules.COOLDOWN_TICKS);
             // Sniper M1903A4: the 10 s after a shot, not the 2 s reload floor or the 60 s round-start lock;
             // M1903A4Cooldowns is its only writer.
             // 狙击手 M1903A4：开火后 10 秒，而非装填后的 2 秒下限或开局 60 秒锁定；M1903A4Cooldowns 是唯一写入方。

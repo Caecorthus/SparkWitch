@@ -3,7 +3,10 @@ package dev.caecorthus.sparkwitch;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.MiniWitherRules;
 import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.WitherGoheiItem;
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
+import dev.caecorthus.sparkwitch.registry.SparkWitchBlocks;
 
+import dev.caecorthus.sparkwitch.item.defense.DefenseVialItem;
+import dev.caecorthus.sparkwitch.item.defense.DefenseVialRules;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
 import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Item;
 import dev.caecorthus.sparkwitch.item.m1903a4.Ammo3006Item;
@@ -169,6 +172,7 @@ public final class SparkWitchItems {
     public static final Identifier PLANNER_TASK_SLIP_ID = PlannerRules.TASK_SLIP_ID;
     public static final Identifier SPHINX_HAO_HAND_GUN_ID = SphinxHaoRules.HAND_GUN_ID;
     public static final Identifier SPHINX_HAO_FIST_AMMO_ID = SphinxHaoRules.FIST_AMMO_ID;
+    public static final Identifier DEFENSE_VIAL_ID = DefenseVialRules.ITEM_ID;
     public static final Identifier M1903A4_ID = SparkWitch.id("m1903a4");
     public static final Identifier AMMO_3006_ID = SparkWitch.id("ammo_3006");
     private static Item ceremonialSword;
@@ -244,6 +248,7 @@ public final class SparkWitchItems {
     private static Item plannerTaskSlip;
     private static Item sphinxHaoHandGun;
     private static Item sphinxHaoFistAmmo;
+    private static Item defenseVial;
     private static Item m1903a4;
     private static Item ammo3006;
 
@@ -664,10 +669,21 @@ public final class SparkWitchItems {
                 SPHINX_HAO_FIST_AMMO_ID,
                 new SphinxHaoFistAmmoItem(SphinxHaoFistAmmoItem.createSettings())
         );
+        // Defense Vial (PR #240, any holder), appended last so earlier registration order stays unchanged.
+        // 防御药剂（PR #240，任何持有者可用），追加在最后，以保持既有注册顺序不变。
+        defenseVial = Registry.register(
+                Registries.ITEM,
+                DEFENSE_VIAL_ID,
+                new DefenseVialItem(DefenseVialItem.createSettings())
+        );
+        // Map-maker beds (PR #239): blocks plus their BlockItems, appended after every existing item so earlier
+        // registration order stays unchanged.
+        // 地图作者用的床（PR #239）：方块及其 BlockItem，追加在所有既有物品之后，以保持既有注册顺序不变。
+        SparkWitchBlocks.register();
         // The Sniper's M1903A4 (five-round stack in custom data, so maxCount(1)) and its .30-06 rounds (stacks of 64),
-        // appended last, after 狮身豪's fist ammo, so earlier registration order stays unchanged.
+        // appended last, after the PR #239 beds, so earlier registration order stays unchanged.
         // 狙击手的 M1903A4（五发弹栈存于自定义数据，因此 maxCount(1)）与 .30-06 子弹（64 个一组），追加在最后
-        // （狮身豪的拳头子弹之后），以保持既有注册顺序不变。
+        // （PR #239 的床之后），以保持既有注册顺序不变。
         m1903a4 = Registry.register(
                 Registries.ITEM,
                 M1903A4_ID,
@@ -751,6 +767,13 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return kokoLightstick;
+    }
+
+    public static Item defenseVial() {
+        if (defenseVial == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return defenseVial;
     }
 
     public static Item plannerTaskSlip() {

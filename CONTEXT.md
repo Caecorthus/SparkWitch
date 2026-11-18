@@ -27,6 +27,9 @@ The Discoverer (`sparkwitch:discoverer`, 探索者, contributed in PR #189) is a
 under open sky, sprints with 25% less stamina drain, and earns 50 coins per task to spend on a spyglass.
 SparkWitch also gives the NoellesRoles Attendant (`noellesroles:attendant`, 乘务员) one Spare Key
 (`sparkwitch:spare_key`, 备用钥匙) at round start; it opens train doors and room-locked doors for durability.
+It also adds two map-maker beds (contributed in PR #239 and reworked in review), both Wathe trimmed beds: the Stained
+Bed (`sparkwitch:grey_dirty_bed`, 污渍的床) can never be slept in, and the Strange Bed (`sparkwitch:green_strange_bed`,
+奇怪的床) sleeps like Wathe's bed but gives 5 s Slowness I and Nausea to whoever finishes the sleep task in it.
 城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, contributed in PR #186 and reworked in review) is a civilian painter whose
 sanity never drains on its own and never returns from tasks, and whose shared ability key (G) paints a random reward
 from one of two tables chosen by her sanity, with a 60 s cooldown.
@@ -2344,6 +2347,22 @@ Current build baseline:
     150, stock 1), priced through `SparkTraitsCharismaBridge`. The PR's conductor key is no longer sold here; it became
     the Attendant's Spare Key below.
   - Open: no SparkAssist guidebook page and no Black Raven disguise entry yet.
+- `block/` + `registry/SparkWitchBlocks` (PR #239, reworked in review): the two map-maker beds, the only SparkWitch
+  blocks. `SparkBedBlock` extends Wathe's `TrimmedBedBlock` with Wathe's bed settings, and `SparkWitchBlocks` adds both
+  beds to Wathe's own `wathe:trimmed_bed` block entity type (Fabric `addSupportedBlock`), so they create Wathe's
+  `TrimmedBedBlockEntity`: Wathe's scorpion and its particles, SparkTraits' blue scorpion, SparkStrength's timed bomb
+  and the Knight duel seal treat them as ordinary trimmed beds. Registered from `SparkWitchItems.register()` after every
+  item; the BlockItems join the SparkWitch tab through its namespace sweep.
+  - Stained Bed (`grey_dirty_bed`): `onUse` answers before Wathe's (so no sleep, scorpion or trap ever lands): Wathe's
+    knife/revolver/derringer PASS like on Wathe's beds, anything else shows `block.sparkwitch.grey_dirty_bed.too_dirty`.
+    SparkStrength's connected-bed search still walks through it.
+  - Strange Bed (`green_strange_bed`): Wathe's `onUse` unchanged. `block/service/SparkBedService` (registered by
+    `SparkWitchBlocks.register()`, not `SparkWitchEvents`) listens to
+    `TaskComplete`: a SLEEP completion whose `getSleepingPosition()` is this bed gives 5 s Slowness I and 5 s Nausea
+    (the timer adds up across beds; an admin completion while lying in it counts).
+  - Resources: models parent Wathe's `template_trimmed_bed_*`; textures are Wathe's white bed with only the bedding
+    repainted (wood, trim and alpha byte-identical); loot drops the head half like Wathe; `minecraft:beds` and
+    `minecraft:mineable/axe` list both. No render layer entry: every sampled texel is opaque.
 - `item/sparekey/`: the Spare Key (`sparkwitch:spare_key`, 备用钥匙), the PR #189 conductor key renamed and given to
   the NoellesRoles Attendant (owner decisions 2026-11-03); numbers live in `SpareKeyRules`.
   - Grant (`SpareKeyAttendantKit`): once per round from an own `ON_FINISH_INITIALIZE` phase after Wathe's default
@@ -2369,6 +2388,32 @@ Current build baseline:
   - SparkStrength's Attendant door log (`DoorLogService`) classifies openings by the main-hand item id only, so until
     SparkStrength lists `sparkwitch:spare_key` in `DoorLogRules`' universal keys and also reads an off-hand Spare Key
     (main hand empty), Spare Key openings log as FORCED.
+- `item/defense/`: the Defense Vial (`sparkwitch:defense_vial`, 防御药剂, PR #240), the pre-2026 NoellesRoles bartender
+  vial brought back as a SparkWitch item; numbers live in `DefenseVialRules`. No role, shop, loadout or loot hands it
+  out yet (creative tab and `/give` only), and NoellesRoles still registers its own inert `noellesroles:defense_vial`.
+  - Drink: any holder who is a living participant of an ACTIVE round holds right-click 2.5 s (`UseAction.DRINK`).
+    Vanilla completes the hold in `DefenseVialItem#finishUsing` (never `onStoppedUsing`, which only reports an early
+    release): +1 round-long whiskey layer, a 30 s vanilla item cooldown (its SparkFactionAPI nominal in
+    `compat/cooldown/SparkWitchItemCooldownNominals`), the vial is used up (kept in creative).
+  - Layers: one level of NoellesRoles `WHISKEY_SHIELD` (layers = amplifier + 1), rebuilt with an infinite duration like
+    the Medium blessing, so layers already there become round-long too. NoellesRoles' `KillPlayer.BEFORE` spends it on
+    any blocked non-forced kill, Wathe poison included.
+  - Pour (`mixin/defensevial/FoodPlatterBlockDefenseVialPourMixin`, HEAD of `FoodPlatterBlock#onUse`, acts only while
+    the vial is held): during a running round a participant pours the vial into a tray; a second vial is refused while
+    one waits. A pour is a use: refused while the vial cools down, and it starts the same 30 s cooldown, so a tray never
+    bypasses the drink's cooldown (`finishUsing` also re-checks the cooldown). `DefenseVialTrays` keys waiting vials by
+    dimension, position and match id (a chunk reload keeps them), and clears them at `ON_FINISH_INITIALIZE` /
+    `ON_FINISH_FINALIZE`; it is never saved.
+  - Take (`mixin/defensevial/GameRecordManagerDefenseVialTakeMixin`, TAIL of the 5-arg
+    `GameRecordManager#recordPlatterTake`): every take path (Wathe, NoellesRoles fine drink / base spirit / Waiter,
+    SparkStrength timed bomb / Coroner Waiter, SparkTraits conscience poison) records one platter take, several of them
+    after cancelling `onUse` at HEAD. The next living participant to take anything from the tray gets the layer (private
+    cue) and the tray is clean again: one vial, one serving, like Wathe's poison.
+  - Replay (`DefenseVialRuntime`): `recordItemUse` with `action` drink / pour / tray_shield (the pourer in `pourer`),
+    rendered with `replay.item_use.sparkwitch.defense_vial.<action>`. The texture is NoellesRoles' original
+    `defense_vial.png` (`THIRD_PARTY_NOTICES.md`).
+  - Knight duelists cannot drink it (not on `KnightDuelSeal`'s whitelist), nor can restricted Wraiths
+    (`WraithParticipation` lets them use only food and cocktails).
 - `roles/civilian/noa/`: 城崎诺亚 Noa Jogasaki (`sparkwitch:noa`, color `0x9CC8FC`), contributed in PR #186 and
   reworked in review (owner answers 2026-11-04); every number lives in `NoaRules`.
   - Registration: a SparkFactionAPI civilian role (Wathe-native civilian, REAL mood, 10 s `maxSprintTime`, no

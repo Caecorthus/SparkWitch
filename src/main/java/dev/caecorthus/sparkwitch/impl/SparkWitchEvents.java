@@ -12,6 +12,7 @@ import dev.caecorthus.sparkwitch.component.PerfumerPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchPlayerComponent;
 import dev.caecorthus.sparkwitch.component.WitchWorldComponent;
 import dev.caecorthus.sparkwitch.economy.WitchEconomyService;
+import dev.caecorthus.sparkwitch.item.defense.DefenseVialRuntime;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordCombatService;
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordDashService;
 import dev.caecorthus.sparkwitch.item.firepoker.FirePokerCombatService;
@@ -341,6 +342,9 @@ public final class SparkWitchEvents {
         // 狮身豪 (Team Jiahao): both C2S payload types, once (idempotent); the server receivers live in its skill services.
         // 狮身豪（嘉豪阵营）：两个 C2S 数据包类型，只注册一次（幂等）；服务端接收器位于其技能服务中。
         SphinxHaoPayloads.registerTypes();
+        // Defense Vial (PR #240): its replay lines and the round-edge reset of poured trays.
+        // 防御药剂（PR #240）：回放文本，以及回合两端对已倒药托盘的清理。
+        DefenseVialRuntime.register();
         TaskComplete.EVENT.register((player, taskType) -> GrandWitchActiveSkillService.onTaskComplete(player));
         TaskComplete.EVENT.register((player, taskType) -> WitchEconomyService.onTaskComplete(player));
         // Bewitched promotion progress (C3): counts and enqueues only; the role changes at END_SERVER_TICK.

@@ -1,0 +1,6 @@
+{
+  "parent": "wathe:block/template_trimmed_bed_inventory",
+  "textures": {
+    "texture": "sparkwitch:block/green_strange_bed"
+  }
+}
