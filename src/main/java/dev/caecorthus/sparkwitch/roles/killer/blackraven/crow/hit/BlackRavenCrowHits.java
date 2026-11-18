@@ -341,6 +341,21 @@ public final class BlackRavenCrowHits {
     }
 
     /**
+     * Sniper M1903A4 single rewound eye ray (server, on bow release), before the puppet and device steps: exactly the
+     * shotgun's centre-ray query ({@link #onShotgunFired}) for the round's block-clipped ray, with the rifle's player
+     * margin as {@code growth}. A crow nearer than {@code aimed}, every puppet and every breakable device takes the
+     * round; its owner is substituted and the caller kills it through its own player path, so the outcome is the
+     * owner's real kill. Null when no crow is first.
+     * 狙击手 M1903A4 的单条回溯眼睛射线（服务端，松开蓄力时），在皮套与设备步骤之前：对子弹按方块截断的射线执行与猎枪中心
+     * 射线完全相同的查询（{@link #onShotgunFired}），{@code growth} 取步枪的玩家余量。比 {@code aimed}、所有皮套与所有可打坏
+     * 设备都更近的乌鸦承受子弹；其主人被替身，调用方经自身玩家路径击杀，因此结果就是对主人的真实击杀。没有乌鸦在最前时为 null。
+     */
+    public static @Nullable ShotgunHit onM1903A4Fired(ServerPlayerEntity shooter, @Nullable PlayerEntity aimed,
+                                                      Vec3d eye, Vec3d end, double growth) {
+        return onShotgunFired(shooter, aimed, eye, end, growth);
+    }
+
+    /**
      * A shotgun ray's crow hit: the substituted owner plus the squared ray entry, so the buckshot orders its victims
      * like plain player hits. / 猎枪射线的乌鸦命中：被替身的主人及射线入射平方距离，使霰弹像普通玩家命中一样排列受害者。
      */
