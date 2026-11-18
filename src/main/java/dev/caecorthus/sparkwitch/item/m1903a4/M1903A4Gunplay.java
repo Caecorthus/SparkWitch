@@ -1,11 +1,16 @@
 package dev.caecorthus.sparkwitch.item.m1903a4;
 
 import dev.caecorthus.sparkwitch.SparkWitchSounds;
+import dev.doctor4t.wathe.api.event.KillPlayer;
+import dev.doctor4t.wathe.api.event.ResetPlayer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,9 +26,16 @@ import java.util.UUID;
  * schedules the bolt sound one second later; a reload started before that cancels it. Firing also ends the reload
  * window, so a shot never leaves a second bolt sound behind.
  * <p>
+ * Lifecycle: the per-player state (server thread only) is dropped on disconnect, on the player's Wathe death
+ * ({@code KillPlayer.AFTER}) and reset ({@code ResetPlayer}), on server stop, and as soon as nothing is pending; a
+ * player who is no longer alive (or is a spectator) plays nothing and loses its queue.
+ * <p>
  * M1903A4 的音效状态机（仅服务端）。每局步枪初始不在装填状态。装入第一发时开栓并开启两秒装填窗口；每装一发在 0.8 秒后
  * 播放压弹声；窗口到期没有新弹药时用另一条拉栓音关栓。开火播放枪声，并在 1 秒后播放拉栓声；若这之前已经开始装填，则取消
  * 这次拉栓。开火同时结束装填窗口，避免之后再冒出第二条关栓音。
+ * <p>
+ * 生命周期：每名玩家的状态（仅服务端线程）在断线、该玩家的 Wathe 死亡（{@code KillPlayer.AFTER}）与重置
+ * （{@code ResetPlayer}）、服务器停止时清除，没有待播音效时也立即清除；不再存活（或为旁观者）的玩家不播放任何音效并丢弃其队列。
  */
 public final class M1903A4Gunplay {
     /** 0.8 s: the round seats, then its sound. / 0.8 秒后压弹声。 */
@@ -32,8 +44,6 @@ public final class M1903A4Gunplay {
     static final int RELOAD_WINDOW_TICKS = 40;
     /** 1 s after a shot the bolt cycles. / 开火 1 秒后拉栓。 */
     private static final int BOLT_AFTER_SHOT_TICKS = 20;
-    /** 10 s shot cooldown. / 开火后 10 秒冷却。 */
-    public static final int SHOT_COOLDOWN_TICKS = 200;
 
     private static final Map<UUID, State> STATES = new HashMap<>();
     private static boolean registered;
@@ -47,11 +57,25 @@ public final class M1903A4Gunplay {
         }
         registered = true;
         ServerTickEvents.END_SERVER_TICK.register(M1903A4Gunplay::tick);
+        // Fabric may fire DISCONNECT on the Netty thread; the map is only touched on the server thread.
+        // Fabric 可能在 Netty 线程触发 DISCONNECT；该映射只在服务端线程访问。
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            UUID uuid = handler.getPlayer().getUuid();
+            server.execute(() -> STATES.remove(uuid));
+        });
+        KillPlayer.AFTER.register((victim, killer, deathReason) -> reset(victim));
+        ResetPlayer.EVENT.register(M1903A4Gunplay::reset);
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> STATES.clear());
     }
 
-    /** Round start: the rifle is not reloading and carries no pending sounds. / 开局：不在装填状态，也没有待播音效。 */
-    public static void reset(ServerPlayerEntity player) {
-        STATES.remove(player.getUuid());
+    /**
+     * Round start, death or reset: the rifle is not reloading and carries no pending sounds.
+     * 开局、死亡或重置：不在装填状态，也没有待播音效。
+     */
+    public static void reset(@Nullable ServerPlayerEntity player) {
+        if (player != null) {
+            STATES.remove(player.getUuid());
+        }
     }
 
     /** One round went in: open the bolt on the first one, refresh the window, seat this round 0.8 s later. */
@@ -83,7 +107,9 @@ public final class M1903A4Gunplay {
         while (iterator.hasNext()) {
             Map.Entry<UUID, State> entry = iterator.next();
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(entry.getKey());
-            if (player == null) {
+            if (!keepsState(player != null, player != null && player.isAlive(),
+                    player != null && player.isSpectator())) {
+                iterator.remove();
                 continue;
             }
             State state = entry.getValue();
@@ -103,7 +129,17 @@ public final class M1903A4Gunplay {
                 play(player, SparkWitchSounds.M1903A4_LOAD, 0.8F);
                 return true;
             });
+            if (state.idle()) {
+                iterator.remove();
+            }
         }
+    }
+
+    /**
+     * Only an online, living, non-spectator player keeps a sound queue. / 只有在线、存活且非旁观的玩家保留音效队列。
+     */
+    static boolean keepsState(boolean online, boolean alive, boolean spectator) {
+        return online && alive && !spectator;
     }
 
     private static State state(ServerPlayerEntity player) {
@@ -123,5 +159,14 @@ public final class M1903A4Gunplay {
         private long reloadDeadline;
         private long shotBoltDue = -1L;
         private final List<Long> loadSoundsDue = new ArrayList<>();
+
+        boolean idle() {
+            return M1903A4Gunplay.idle(reloading, shotBoltDue, loadSoundsDue.size());
+        }
+    }
+
+    /** Nothing left to play: the entry can go. / 没有待播音效：条目可以移除。 */
+    static boolean idle(boolean reloading, long shotBoltDue, int pendingLoadSounds) {
+        return !reloading && shotBoltDue < 0L && pendingLoadSounds <= 0;
     }
 }
