@@ -415,5 +415,14 @@
     "sounds": [
       "sparkwitch:bear/earplugs_insert"
     ]
+  },
+  "music.sphinx_hao_fade": {
+    "subtitle": "subtitles.sparkwitch.music.sphinx_hao_fade",
+    "sounds": [
+      {
+        "name": "sparkwitch:music/sphinx_hao_fade",
+        "stream": true
+      }
+    ]
   }
 }

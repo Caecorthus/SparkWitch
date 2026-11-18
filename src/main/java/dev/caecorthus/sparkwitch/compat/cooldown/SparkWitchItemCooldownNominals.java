@@ -26,6 +26,7 @@ import dev.caecorthus.sparkwitch.roles.killer.ninja.NinjaRules;
 import dev.caecorthus.sparkwitch.roles.killer.timestealer.TimeStealerRules;
 import dev.caecorthus.sparkwitch.roles.neutral.insider.InsiderRules;
 import dev.caecorthus.sparkwitch.roles.neutral.koko.KokoRules;
+import dev.caecorthus.sparkwitch.roles.neutral.sphinxhao.SphinxHaoRules;
 import dev.caecorthus.sparkwitch.roles.witch.abysslistener.AbyssListenerRules;
 import dev.caecorthus.sparkwitch.roles.witch.potiongunner.PotionGunnerRules;
 import dev.caecorthus.sparkwitch.roles.witch.riftwalker.gate.RiftGatePlacementService;
@@ -139,6 +140,10 @@ final class SparkWitchItemCooldownNominals implements ItemCooldownNominalProvide
             entries.put(SparkWitchItems.ROPE_ID, RopeRules.INTERRUPT_COOLDOWN_TICKS);
             // 泽渡可可's lightstick (PR #223): the 30 s between uses. / 泽渡可可的应援棒（PR #223）：两次使用之间的 30 秒。
             entries.put(SparkWitchItems.KOKO_LIGHTSTICK_ID, KokoRules.LIGHTSTICK_COOLDOWN_TICKS);
+            // 狮身豪's "手"枪: 5 s after a shot, 1 s after a load; the longer of the two is the nominal.
+            // 狮身豪的“手”枪：射击后 5 秒、装填后 1 秒；取两者较长者为标准冷却。
+            entries.put(SparkWitchItems.SPHINX_HAO_HAND_GUN_ID,
+                    Math.max(SphinxHaoRules.GUN_FIRE_COOLDOWN_TICKS, SphinxHaoRules.GUN_LOAD_COOLDOWN_TICKS));
             // NoellesRoles items: public constants of the pinned 1.7.6 jar, plus the master key, which both
             // NoellesRoles (literal) and the Insider door path write as 200 ticks. The timed bomb stays exempt in
             // SparkFactionAPI itself (Bomber pass gate).

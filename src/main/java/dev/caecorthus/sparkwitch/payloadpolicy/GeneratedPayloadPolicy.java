@@ -15,9 +15,9 @@ import java.util.Set;
  */
 public final class GeneratedPayloadPolicy {
     /** SHA-256 of the canonical table this file was generated from. / 生成本文件所用规范表的 SHA-256。 */
-    public static final String CONTRACT_SHA256 = "5f0c4d708669eca5bde5afa4f4fb887365b9e3b48ff06be48aad84105e05c170";
+    public static final String CONTRACT_SHA256 = "72d1f8860a0a017cb675e6323ce534ea442ae63fab6aee03e58b76555f06564b";
 
-    /** Column STUN: 104 ids. / STUN 列：104 个 id。 */
+    /** Column STUN: 106 ids. / STUN 列：106 个 id。 */
     public static final Set<Identifier> STUN = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -118,13 +118,15 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "use_skill"),
             Identifier.of("sparkwitch", "use_specter_second_skill"),
             Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_infect"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_roar"),
             Identifier.of("sparkwitch", "usec_attachment"),
             Identifier.of("sparkwitch", "vendetta_knife_stab"),
             Identifier.of("wathe", "gunshoot"),
             Identifier.of("wathe", "knifestab"),
             Identifier.of("wathe", "storebuy"));
 
-    /** Column SEEKER: 104 ids. / SEEKER 列：104 个 id。 */
+    /** Column SEEKER: 106 ids. / SEEKER 列：106 个 id。 */
     public static final Set<Identifier> SEEKER = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -223,6 +225,8 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "use_skill"),
             Identifier.of("sparkwitch", "use_specter_second_skill"),
             Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_infect"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_roar"),
             Identifier.of("sparkwitch", "usec_attachment"),
             Identifier.of("sparkwitch", "vendetta_knife_stab"),
             Identifier.of("wathe", "gunshoot"),
@@ -231,7 +235,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("wathe", "storebuy"),
             Identifier.of("wathe", "walkie_talkie_channel"));
 
-    /** Column RIFT: 103 ids. / RIFT 列：103 个 id。 */
+    /** Column RIFT: 105 ids. / RIFT 列：105 个 id。 */
     public static final Set<Identifier> RIFT = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -329,6 +333,8 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "use_skill"),
             Identifier.of("sparkwitch", "use_specter_second_skill"),
             Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_infect"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_roar"),
             Identifier.of("sparkwitch", "usec_attachment"),
             Identifier.of("sparkwitch", "vendetta_knife_stab"),
             Identifier.of("wathe", "gunshoot"),
@@ -337,7 +343,7 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("wathe", "storebuy"),
             Identifier.of("wathe", "walkie_talkie_channel"));
 
-    /** Column FEAR: 80 ids. / FEAR 列：80 个 id。 */
+    /** Column FEAR: 82 ids. / FEAR 列：82 个 id。 */
     public static final Set<Identifier> FEAR = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -418,13 +424,15 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "use_skill"),
             Identifier.of("sparkwitch", "use_specter_second_skill"),
             Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_infect"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_roar"),
             Identifier.of("sparkwitch", "vendetta_knife_stab"));
 
     /** Column FEAR_SILENT: 1 ids. / FEAR_SILENT 列：1 个 id。 */
     public static final Set<Identifier> FEAR_SILENT = Set.of(
             Identifier.of("sparkwitch", "black_raven_crow_move"));
 
-    /** Column DUEL_PRIMARY: 48 ids. / DUEL_PRIMARY 列：48 个 id。 */
+    /** Column DUEL_PRIMARY: 49 ids. / DUEL_PRIMARY 列：49 个 id。 */
     public static final Set<Identifier> DUEL_PRIMARY = Set.of(
             Identifier.of("noellesroles", "ability"),
             Identifier.of("noellesroles", "assassin_guess_role"),
@@ -473,7 +481,8 @@ public final class GeneratedPayloadPolicy {
             Identifier.of("sparkwitch", "use_saboteur_skill"),
             Identifier.of("sparkwitch", "use_savior_skill"),
             Identifier.of("sparkwitch", "use_skill"),
-            Identifier.of("sparkwitch", "use_specter_skill"));
+            Identifier.of("sparkwitch", "use_specter_skill"),
+            Identifier.of("sparkwitch", "use_sphinx_hao_infect"));
 
     /** Column DUEL_WEAPON: 12 ids. / DUEL_WEAPON 列：12 个 id。 */
     public static final Set<Identifier> DUEL_WEAPON = Set.of(

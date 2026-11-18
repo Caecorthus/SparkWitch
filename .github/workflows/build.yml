@@ -25,26 +25,30 @@ jobs:
     steps:
       # Depth 2 so the whitespace check can diff against the first parent (the base tip on a PR merge ref).
       # 深度 2，使空白检查能与第一父提交比较（PR 合并引用上即基础分支末端）。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 2
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
-      # `build` runs neither verifyArchitecture nor verifyClientMixinSelectors, so both are named explicitly.
-      # `build` 不会运行 verifyArchitecture 与 verifyClientMixinSelectors，因此二者需显式列出。
+      # `build` runs none of the verify tasks, so each is named explicitly. verifyArchitecture brings in
+      # verifyBlackRavenActingRoleSeams and verifySoundAssets.
+      # `build` 不会运行任何校验任务，因此需逐个显式列出。verifyArchitecture 会带上
+      # verifyBlackRavenActingRoleSeams 与 verifySoundAssets。
       - name: Build and verify
-        run: ./gradlew --no-daemon --console=plain build verifyArchitecture verifyClientMixinSelectors
+        run: >-
+          ./gradlew --no-daemon --console=plain build
+          verifyArchitecture verifyClientMixinSelectors verifyModJarVersion verifyCompatibilityBaselines
 
       - name: Whitespace check
         run: git diff --check HEAD^1 HEAD
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sparkwitch-${{ github.sha }}
           path: build/libs/*.jar

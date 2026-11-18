@@ -278,6 +278,7 @@
     "usec.GameFunctionsUsecPsychoArmourMixin",
     "discoverer.DiscovererSprintDrainMixin",
     "koko.KokoSprintDrainMixin",
+    "sphinxhao.PlayerEntitySphinxHaoCrawlMixin",
     "hanna.ServerWorldHannaSilenceMixin",
     "hanna.ServerPlayerInteractionManagerHannaSoundScopeMixin",
     "hanna.ServerPlayNetworkHandlerHannaSoundScopeMixin",
@@ -312,6 +313,11 @@
     "specter.SpecterOtherworldGunMixin",
     "specter.GameFunctionsSpecterShieldMixin",
     "specter.DecoratedPotBlockPeachwoodSwordMixin",
+    "sphinxhao.GameFunctionsSphinxHaoGunDropMixin",
+    "sphinxhao.PlayerEntitySphinxHaoGunMixin",
+    "sphinxhao.ServerPlayerEntitySphinxHaoGunDropMixin",
+    "sphinxhao.ScreenHandlerSphinxHaoGunMixin",
+    "sphinxhao.DecoratedPotBlockSphinxHaoGunMixin",
     "food.SparkFoodPlatterMixin"
   ],
   "injectors": {

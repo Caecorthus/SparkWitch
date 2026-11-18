@@ -86,6 +86,11 @@ public final class MagicianPuppetHits {
      */
     static final double USEC_RIFLE_BOX_EXPANSION = 0.1;
     /**
+     * Player box growth of the 狮身豪 "手"枪 pick ({@code SphinxHaoGunRules.HIT_MARGIN}), given to the puppet too.
+     * 狮身豪“手”枪选取玩家时的箱体扩大量（{@code SphinxHaoGunRules.HIT_MARGIN}），皮套相同。
+     */
+    static final double SPHINX_HAO_FIST_BOX_EXPANSION = 0.2;
+    /**
      * SparkStrength M67 kill radius ({@code M67Rules.BLAST_RADIUS}: 5.0 since SparkStrength 3fa84e9, 2026-10-03).
      * SparkStrength M67 击杀半径（自 SparkStrength 3fa84e9 起为 5.0）。
      */
@@ -269,6 +274,43 @@ public final class MagicianPuppetHits {
                                            MagicianPlaybackEntity puppet) {
         return MagicianPlaybackManager.endPuppet(puppet, shooter, GameConstants.DeathReasons.GUN,
                 shotgun == null ? null : shotgun.getTranslationKey());
+    }
+
+    /**
+     * 狮身豪 "手"枪 single rewound eye ray (server, read-only), after the Raven Form step and before the Seeker step:
+     * the live foreign puppet whose box (grown by {@link #SPHINX_HAO_FIST_BOX_EXPANSION}, the fist's player margin) the
+     * block-clipped ray {@code start -> end} enters strictly nearer than {@code target} and every breakable device, else
+     * null. Nothing is ended here; {@link #endSphinxHaoFistPuppet} writes. Same nearest-wins as the shotgun's centre ray.
+     * 狮身豪“手”枪的单条回溯眼睛射线（服务端，只读），在化鸦步骤之后、搜寻者步骤之前：按方块截断的射线 {@code start -> end}
+     * 严格早于 {@code target} 与所有可打坏设备进入其箱体（按 {@link #SPHINX_HAO_FIST_BOX_EXPANSION}，即拳头的玩家余量扩大）的
+     * 他人活皮套，否则为 null。这里不结束任何东西，由 {@link #endSphinxHaoFistPuppet} 写入。与猎枪中心射线同样的最近者命中。
+     */
+    public static @Nullable MagicianPlaybackEntity sphinxHaoFistPuppetOnRay(ServerPlayerEntity shooter,
+                                                                           @Nullable PlayerEntity target, Vec3d start,
+                                                                           Vec3d end) {
+        if (shooter == null || shooter.getWorld().isClient() || shooter.isSpectator()
+                || !GameWorldComponent.KEY.get(shooter.getWorld()).isRunning()) {
+            return null;
+        }
+        double beat = Math.min(
+                MagicianPuppetRaycast.playerDistanceSquared(start, end, target, SPHINX_HAO_FIST_BOX_EXPANSION),
+                MagicianPuppetRaycast.breakableDeviceSquared(shooter, start, end));
+        MagicianPuppetRaycast.PuppetHit hit = MagicianPuppetRaycast.nearestHittable(shooter, start, end,
+                SPHINX_HAO_FIST_BOX_EXPANSION, beat);
+        return hit == null ? null : hit.puppet();
+    }
+
+    /**
+     * Writing half of the fist step: ends a puppet {@link #sphinxHaoFistPuppetOnRay} returned with the fist's own death
+     * reason (the decoy body reads like a real fist kill) and the gun's name in the replay. A lethal weapon ends a
+     * puppet and pays the Magician (D4, D5); the shooter's shot still counts as no kill.
+     * 拳头步骤的写入部分：以拳头自身的死因结束 {@link #sphinxHaoFistPuppetOnRay} 返回的皮套（诱饵尸体看起来与真正的铁拳击杀
+     * 一致），回放中显示手枪名称。致命武器会结束皮套并向魔术师付款（D4、D5）；射手这一枪仍算未击杀。
+     */
+    public static boolean endSphinxHaoFistPuppet(ServerPlayerEntity shooter, @Nullable ItemStack gun,
+                                                 MagicianPlaybackEntity puppet) {
+        return MagicianPlaybackManager.endPuppet(puppet, shooter, SparkWitchDeathReasons.SPHINX_HAO_FIST,
+                gun == null ? null : gun.getTranslationKey());
     }
 
     /**
