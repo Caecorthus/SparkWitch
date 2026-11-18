@@ -317,7 +317,9 @@
     "sphinxhao.PlayerEntitySphinxHaoGunMixin",
     "sphinxhao.ServerPlayerEntitySphinxHaoGunDropMixin",
     "sphinxhao.ScreenHandlerSphinxHaoGunMixin",
-    "sphinxhao.DecoratedPotBlockSphinxHaoGunMixin"
+    "sphinxhao.DecoratedPotBlockSphinxHaoGunMixin",
+    "defensevial.FoodPlatterBlockDefenseVialPourMixin",
+    "defensevial.GameRecordManagerDefenseVialTakeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

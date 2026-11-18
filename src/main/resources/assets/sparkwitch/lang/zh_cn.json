@@ -2248,5 +2248,16 @@
   "replay.death.sparkwitch.sphinx_hao_fist.killed": "%s 被 %s 的§6铁拳§r砸死了",
   "replay.death.sparkwitch.sphinx_hao_fist.died": "%s 被§6铁拳§r砸死了",
   "replay.item_use.sparkwitch.sphinx_hao_hand_gun.hit": "%s 用§6“手”枪§r一拳打中了 %s",
-  "replay.item_use.sparkwitch.sphinx_hao_hand_gun.miss": "%s 开了一次§6“手”枪§r但没有打中人"
+  "replay.item_use.sparkwitch.sphinx_hao_hand_gun.miss": "%s 开了一次§6“手”枪§r但没有打中人",
+  "item.sparkwitch.defense_vial": "防御药剂",
+  "item.sparkwitch.defense_vial.tooltip.drink": "按住右键 %s 秒饮用：获得一层持续整局的护盾（冷却 %s 秒）",
+  "item.sparkwitch.defense_vial.tooltip.pour": "右键餐盘可倒入：下一个从中取用的人获得这层护盾（共用冷却）",
+  "message.sparkwitch.defense_vial.shield": "护盾 +1",
+  "message.sparkwitch.defense_vial.poured": "药剂已倒入餐盘：下一份被取走的食物或饮品附带一层护盾",
+  "message.sparkwitch.defense_vial.already_poured": "这个餐盘里已经有防御药剂了",
+  "message.sparkwitch.defense_vial.tray_shield": "餐盘里的药剂护住了你（护盾 +1）",
+  "message.sparkwitch.defense_vial.interrupted": "被打断了",
+  "replay.item_use.sparkwitch.defense_vial.drink": "%s 喝下了防御药剂，获得一层护盾",
+  "replay.item_use.sparkwitch.defense_vial.pour": "%s 把防御药剂倒进了餐盘",
+  "replay.item_use.sparkwitch.defense_vial.tray_shield": "%1$s 从餐盘取用时，获得了 %2$s 倒入的防御药剂提供的一层护盾"
 }
