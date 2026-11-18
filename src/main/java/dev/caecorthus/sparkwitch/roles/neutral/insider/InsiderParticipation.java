@@ -40,11 +40,12 @@ public final class InsiderParticipation {
     }
 
     /**
-     * Team Jiahao: every Corrupt Cop, every Insider (D2) and every Sphinx Hao.
-     * 嘉豪阵营：所有黑警、所有内应（D2）与所有狮身豪。
+     * Team Jiahao: every Corrupt Cop, every Insider (D2), every Sphinx Hao and every Sniper (owner 2026-11-17).
+     * 嘉豪阵营：所有黑警、所有内应（D2）、所有狮身豪与所有狙击手（所有者 2026-11-17）。
      */
     public static boolean isTeamRole(@Nullable Role role) {
-        return isPartnerRole(role) || isCorruptCopRole(role);
+        return isPartnerRole(role) || isCorruptCopRole(role)
+                || dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperRules.isSniperRole(role);
     }
 
     public static boolean isInsider(@Nullable PlayerEntity player) {

@@ -50,9 +50,10 @@ public final class JiahaoTeamWinRules {
     public enum Kind {
         CORRUPT_COP,
         INSIDER,
-        SPHINX_HAO;
+        SPHINX_HAO,
+        SNIPER;
 
-        /** An Insider or a Sphinx Hao: its presence turns the team rules on. / 内应或狮身豪：其存在使阵营规则生效。 */
+        /** An Insider, a Sphinx Hao or a Sniper: its presence turns the team rules on. / 内应、狮身豪或狙击手：其存在使阵营规则生效。 */
         public boolean partner() {
             return this != CORRUPT_COP;
         }
@@ -64,6 +65,9 @@ public final class JiahaoTeamWinRules {
             }
             if (InsiderRules.ROLE_ID.equals(roleId)) {
                 return INSIDER;
+            }
+            if (dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperRules.ROLE_ID.equals(roleId)) {
+                return SNIPER;
             }
             return SphinxHaoRules.isSphinxHao(roleId) ? SPHINX_HAO : null;
         }

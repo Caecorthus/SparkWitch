@@ -238,6 +238,9 @@ public final class SparkWitchEvents {
         FiendFeatureService.register();
         InsiderEquipmentService.register();
         InsiderEconomyService.register();
+        dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperLoadoutService.register();
+        dev.caecorthus.sparkwitch.roles.neutral.sniper.SniperEconomyService.register();
+        dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Gunplay.register();
         BlindFeatureService.register();
         AbyssListenerFeatureService.register();
         PotionGunnerFeatureService.register();

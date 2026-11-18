@@ -5,6 +5,8 @@ import dev.caecorthus.sparkwitch.roles.killer.witchmaiden.wither.WitherGoheiItem
 import dev.caecorthus.sparkwitch.roles.civilian.vendetta.VendettaInteractionService;
 
 import dev.caecorthus.sparkwitch.item.ceremonialsword.CeremonialSwordItem;
+import dev.caecorthus.sparkwitch.item.m1903a4.M1903A4Item;
+import dev.caecorthus.sparkwitch.item.m1903a4.Ammo3006Item;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaGrapplingHookItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaKnifeItem;
 import dev.caecorthus.sparkwitch.item.ninja.NinjaShurikenItem;
@@ -167,6 +169,8 @@ public final class SparkWitchItems {
     public static final Identifier PLANNER_TASK_SLIP_ID = PlannerRules.TASK_SLIP_ID;
     public static final Identifier SPHINX_HAO_HAND_GUN_ID = SphinxHaoRules.HAND_GUN_ID;
     public static final Identifier SPHINX_HAO_FIST_AMMO_ID = SphinxHaoRules.FIST_AMMO_ID;
+    public static final Identifier M1903A4_ID = SparkWitch.id("m1903a4");
+    public static final Identifier AMMO_3006_ID = SparkWitch.id("ammo_3006");
     private static Item ceremonialSword;
     private static Item crossSword;
     private static Item firePoker;
@@ -240,6 +244,8 @@ public final class SparkWitchItems {
     private static Item plannerTaskSlip;
     private static Item sphinxHaoHandGun;
     private static Item sphinxHaoFistAmmo;
+    private static Item m1903a4;
+    private static Item ammo3006;
 
     private static boolean registered;
 
@@ -636,18 +642,11 @@ public final class SparkWitchItems {
                 KOKO_LIGHTSTICK_ID,
                 new KokoLightstickItem(KokoLightstickItem.createSettings())
         );
-        // 规划大师's task slip (PR #219), appended last, after 泽渡可可's lightstick, so earlier registration order stays
-        // unchanged. Any holder may use it; maxCount(1). / 规划大师的任务单（PR #219），追加在最后（泽渡可可的应援棒之后），
-        // 以保持既有注册顺序不变。谁拿到都能用；maxCount(1)。
         plannerTaskSlip = Registry.register(
                 Registries.ITEM,
                 PLANNER_TASK_SLIP_ID,
                 new PlannerTaskSlipItem(PlannerTaskSlipItem.createSettings())
         );
-        // 狮身豪's spring-fist hand gun (one fist, loaded flag in a data component, so maxCount(1)) and its fist ammo
-        // (stacks of 16), appended last, after 规划大师's task slip, so earlier registration order stays unchanged.
-        // 狮身豪的弹簧拳头手枪（装一发拳头，装填标记在数据组件中，因此 maxCount(1)）与拳头子弹（16 个一组），追加在最后
-        // （规划大师的任务单之后），以保持既有注册顺序不变。
         sphinxHaoHandGun = Registry.register(
                 Registries.ITEM,
                 SPHINX_HAO_HAND_GUN_ID,
@@ -657,6 +656,16 @@ public final class SparkWitchItems {
                 Registries.ITEM,
                 SPHINX_HAO_FIST_AMMO_ID,
                 new SphinxHaoFistAmmoItem(SphinxHaoFistAmmoItem.createSettings())
+        );
+        m1903a4 = Registry.register(
+                Registries.ITEM,
+                M1903A4_ID,
+                new M1903A4Item(M1903A4Item.createSettings())
+        );
+        ammo3006 = Registry.register(
+                Registries.ITEM,
+                AMMO_3006_ID,
+                new Ammo3006Item(Ammo3006Item.createSettings())
         );
         registerMeleeSuppression();
         VendettaKnifeLoadoutService.register();
@@ -1214,5 +1223,19 @@ public final class SparkWitchItems {
             throw new IllegalStateException("SparkWitch items are not registered yet");
         }
         return sherryNote;
+    }
+
+    public static Item m1903a4() {
+        if (m1903a4 == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return m1903a4;
+    }
+
+    public static Item ammo3006() {
+        if (ammo3006 == null) {
+            throw new IllegalStateException("SparkWitch items are not registered yet");
+        }
+        return ammo3006;
     }
 }
