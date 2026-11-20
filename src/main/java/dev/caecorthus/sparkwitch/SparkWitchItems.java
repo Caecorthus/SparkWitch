@@ -680,6 +680,7 @@ public final class SparkWitchItems {
         // registration order stays unchanged.
         // 地图作者用的床（PR #239）：方块及其 BlockItem，追加在所有既有物品之后，以保持既有注册顺序不变。
         SparkWitchBlocks.register();
+        dev.caecorthus.sparkwitch.registry.SparkWitchNeonBlocks.register();
         // The Sniper's M1903A4 (five-round stack in custom data, so maxCount(1)) and its .30-06 rounds (stacks of 64),
         // appended last, after the PR #239 beds, so earlier registration order stays unchanged.
         // 狙击手的 M1903A4（五发弹栈存于自定义数据，因此 maxCount(1)）与 .30-06 子弹（64 个一组），追加在最后

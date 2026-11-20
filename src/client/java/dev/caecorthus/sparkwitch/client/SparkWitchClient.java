@@ -161,6 +161,7 @@ public final class SparkWitchClient implements ClientModInitializer {
         // 本能、描边与盲人钩子读取的本地观察者事实，按世界渲染 pass 缓存。
         LocalViewerSnapshot.register();
         SecondaryAbilityController.registerKeyBinding();
+        dev.caecorthus.sparkwitch.client.props.NeonClientNetworking.register();
         BlackRavenClientModule.register();
         GrandWitchClientModule.register();
         ApprenticeClientModule.register();

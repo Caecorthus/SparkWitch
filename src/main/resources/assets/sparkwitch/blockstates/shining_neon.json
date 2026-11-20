@@ -1,0 +1,44 @@
+{
+  "variants": {
+    "axis=y,lit=true,active=true": {
+      "model": "wathe:block/neon_pillar_lit"
+    },
+    "axis=y,lit=true,active=false": {
+      "model": "wathe:block/neon_pillar_lit"
+    },
+    "axis=y,lit=false,active=true": {
+      "model": "wathe:block/neon_pillar_unlit"
+    },
+    "axis=y,lit=false,active=false": {
+      "model": "wathe:block/neon_pillar_unlit"
+    },
+    "axis=x,lit=true,active=true": {
+      "model": "wathe:block/neon_pillar_lit_horizontal",
+      "x": 90
+    },
+    "axis=x,lit=true,active=false": {
+      "model": "wathe:block/neon_pillar_lit_horizontal",
+      "x": 90
+    },
+    "axis=x,lit=false,active=true": {
+      "model": "wathe:block/neon_pillar_unlit_horizontal",
+      "x": 90
+    },
+    "axis=x,lit=false,active=false": {
+      "model": "wathe:block/neon_pillar_unlit_horizontal",
+      "x": 90
+    },
+    "axis=z,lit=true,active=true": {
+      "model": "wathe:block/neon_pillar_lit_horizontal"
+    },
+    "axis=z,lit=true,active=false": {
+      "model": "wathe:block/neon_pillar_lit_horizontal"
+    },
+    "axis=z,lit=false,active=true": {
+      "model": "wathe:block/neon_pillar_unlit_horizontal"
+    },
+    "axis=z,lit=false,active=false": {
+      "model": "wathe:block/neon_pillar_unlit_horizontal"
+    }
+  }
+}
